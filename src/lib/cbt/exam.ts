@@ -20,7 +20,14 @@ export function buildSesi(ujian: Ujian, pesertaId: string): SesiUjian {
     if (ts.tipe) pool = pool.filter((s) => s.tipe === ts.tipe);
     if (ts.kesulitan) pool = pool.filter((s) => s.kesulitan === ts.kesulitan);
     const chosen = (ts.acakSoal ? shuffle(pool) : pool).slice(0, ts.jumlah);
+    if (chosen.length < ts.jumlah) {
+      throw new Error(`Bank soal untuk topik terkait ujian \"${ujian.nama}\" belum cukup.`);
+    }
     soalTerpilih.push(...chosen);
+  }
+
+  if (soalTerpilih.length === 0) {
+    throw new Error(`Bank soal untuk ujian \"${ujian.nama}\" belum cukup atau tidak cocok dengan filter topik.`);
   }
 
   const jawabanOrder: Record<string, string[]> = {};
@@ -116,7 +123,10 @@ export function findOrCreateSesi(ujianId: string, pesertaId: string): SesiUjian 
     (s) => s.ujianId === ujianId && s.pesertaId === pesertaId && s.status !== "selesai",
   );
   if (existing) return existing;
-  const ujian = ujianRepo.byId(ujianId)!;
+  const ujian = ujianRepo.byId(ujianId);
+  if (!ujian) {
+    throw new Error("Ujian tidak ditemukan.");
+  }
   const fresh = buildSesi(ujian, pesertaId);
   sesiRepo.upsert(fresh);
   return fresh;

@@ -17,21 +17,33 @@ export const Route = createFileRoute("/_authenticated/admin/evaluasi/$id")({
 
 function EvaluasiSesi() {
   const { id } = useParams({ from: "/_authenticated/admin/evaluasi/$id" });
-  const me = useAuthStore((s) => s.user)!;
+  const me = useAuthStore((s) => s.user);
   const [sesi, setSesi] = useState(sesiRepo.byId(id));
+  if (!me) return <div>Anda harus login terlebih dahulu</div>;
   if (!sesi) return <div>Sesi tidak ditemukan</div>;
-  const ujian = ujianRepo.byId(sesi.ujianId)!;
+  const ujian = ujianRepo.byId(sesi.ujianId);
+  if (!ujian) return <div>Ujian untuk sesi ini tidak ditemukan</div>;
   const peserta = usersRepo.byId(sesi.pesertaId);
 
+  const currentUjian = ujian;
+  const currentMe = me;
   const items = sesi.jawaban
-    .map((j, idx) => ({ j, idx, soal: soalRepo.byId(j.soalId)! }))
-    .filter((x) => x.soal?.tipe === "essay");
+    .map((j, idx) => ({ j, idx, soal: soalRepo.byId(j.soalId) }))
+    .filter((x) => x.soal?.tipe === "essay" || x.j.jawabanEssay.trim().length > 0);
+
+  function normalizeSkor(skor: number | undefined): number | undefined {
+    if (skor === undefined) return undefined;
+    if (!Number.isFinite(skor)) return undefined;
+    return Math.max(0, Math.min(currentUjian.poinBenar, skor));
+  }
 
   function setSkor(idx: number, skor: number | undefined, catatan: string) {
     if (!sesi) return;
     const next = {
       ...sesi,
-      jawaban: sesi.jawaban.map((x, i) => (i === idx ? { ...x, skor, catatanGrader: catatan } : x)),
+      jawaban: sesi.jawaban.map((x, i) =>
+        i === idx ? { ...x, skor: normalizeSkor(skor), catatanGrader: catatan } : x,
+      ),
     };
     sesiRepo.upsert(next);
     setSesi(next);
@@ -39,8 +51,8 @@ function EvaluasiSesi() {
 
   function selesaikan() {
     if (!sesi) return;
-    const final = recomputeSkor(sesi, ujian);
-    const withMeta = { ...final, gradedAt: Date.now(), gradedBy: me.id };
+    const final = recomputeSkor(sesi, currentUjian);
+    const withMeta = { ...final, gradedAt: Date.now(), gradedBy: currentMe.id };
     sesiRepo.upsert(withMeta);
     setSesi(withMeta);
     toast.success(`Nilai akhir: ${withMeta.skorTotal} / ${withMeta.maxSkor}`);
@@ -56,44 +68,59 @@ function EvaluasiSesi() {
           Nilai Essay — {peserta?.namaLengkap}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Ujian: {ujian.nama} · Poin per soal: {ujian.poinBenar}
+          Ujian: {currentUjian.nama} · Poin per soal: {currentUjian.poinBenar}
         </p>
       </div>
 
-      {items.map(({ j, idx, soal }) => (
-        <Card key={idx}>
-          <CardContent className="space-y-3 p-4">
-            <div className="text-xs text-muted-foreground">Soal #{idx + 1}</div>
-            <RichView html={soal.detail} />
-            <div className="rounded bg-muted p-3 text-sm whitespace-pre-wrap">
-              {j.jawabanEssay || <em className="text-muted-foreground">(kosong)</em>}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Skor (0–{ujian.poinBenar})</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={ujian.poinBenar}
-                  value={j.skor ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value === "" ? undefined : Number(e.target.value);
-                    setSkor(idx, v, j.catatanGrader ?? "");
-                  }}
-                />
+      {items.map(({ j, idx, soal }) => {
+        if (!soal) {
+          return (
+            <Card key={idx}>
+              <CardContent className="space-y-3 p-4 text-sm text-muted-foreground">
+                <div className="text-xs">Soal essay #{idx + 1}</div>
+                <div>Soal untuk jawaban ini tidak ditemukan lagi di bank soal.</div>
+                <div className="rounded bg-muted p-3 whitespace-pre-wrap">
+                  {j.jawabanEssay || <em>(kosong)</em>}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        }
+        return (
+          <Card key={idx}>
+            <CardContent className="space-y-3 p-4">
+              <div className="text-xs text-muted-foreground">Soal #{idx + 1}</div>
+              <RichView html={soal.detail} />
+              <div className="rounded bg-muted p-3 text-sm whitespace-pre-wrap">
+                {j.jawabanEssay || <em className="text-muted-foreground">(kosong)</em>}
               </div>
-              <div>
-                <Label>Catatan untuk peserta</Label>
-                <Textarea
-                  rows={2}
-                  value={j.catatanGrader ?? ""}
-                  onChange={(e) => setSkor(idx, j.skor, e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Skor (0–{currentUjian.poinBenar})</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={currentUjian.poinBenar}
+                    value={j.skor ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value === "" ? undefined : Number(e.target.value);
+                      setSkor(idx, v, j.catatanGrader ?? "");
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label>Catatan untuk peserta</Label>
+                  <Textarea
+                    rows={2}
+                    value={j.catatanGrader ?? ""}
+                    onChange={(e) => setSkor(idx, j.skor, e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
 
       <div className="flex items-center justify-between rounded border bg-muted/30 p-3">
         <div className="text-sm">

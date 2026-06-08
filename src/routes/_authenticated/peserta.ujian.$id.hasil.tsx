@@ -39,13 +39,25 @@ function HasilPeserta() {
         <Card><CardContent className="p-4 space-y-3">
           <h3 className="font-medium">Pembahasan</h3>
           {sesi.jawaban.map((j, i) => {
-            const soal = soalRepo.byId(j.soalId)!;
+            const soal = soalRepo.byId(j.soalId);
+            if (!soal) {
+              return (
+                <div key={i} className="rounded border border-dashed p-3 text-sm text-muted-foreground">
+                  Soal #{i + 1} tidak tersedia lagi di bank soal.
+                </div>
+              );
+            }
             const benarIds = soal.jawaban.filter((x) => x.benar).map((x) => x.id);
-            const correct = j.jawabanIds.length === benarIds.length && benarIds.every((id) => j.jawabanIds.includes(id));
+            const isEssay = soal.tipe === "essay";
+            const correct = !isEssay && j.jawabanIds.length === benarIds.length && benarIds.every((id) => j.jawabanIds.includes(id));
             return (
               <div key={i} className="rounded border p-3 space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  Soal #{i + 1} · {soal.tipe} · {correct ? <span className="text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />benar</span> : <span className="text-destructive flex items-center gap-1"><XCircle className="h-3 w-3" />salah</span>}
+                  Soal #{i + 1} · {soal.tipe} · {isEssay ? (
+                    <span className="text-primary">
+                      {typeof j.skor === "number" ? `dinilai (${j.skor})` : "belum dinilai"}
+                    </span>
+                  ) : correct ? <span className="text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />benar</span> : <span className="text-destructive flex items-center gap-1"><XCircle className="h-3 w-3" />salah</span>}
                 </div>
                 <RichView html={soal.detail} />
                 {soal.audioFileId && (

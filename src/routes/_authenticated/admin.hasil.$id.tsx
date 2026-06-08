@@ -119,17 +119,35 @@ function HasilUjian() {
 
       {openId &&
         (() => {
-          const s = sesis.find((x) => x.id === openId)!;
+          const s = sesis.find((x) => x.id === openId);
+          if (!s) {
+            return (
+              <Card>
+                <CardContent className="p-4 text-sm text-muted-foreground">
+                  Detail sesi tidak lagi tersedia.
+                </CardContent>
+              </Card>
+            );
+          }
           return (
             <Card>
               <CardContent className="space-y-3 p-4">
                 <h3 className="font-medium">Detail jawaban</h3>
                 {s.jawaban.map((j, i) => {
-                  const soal = soalRepo.byId(j.soalId)!;
+                  const soal = soalRepo.byId(j.soalId);
+                  if (!soal) {
+                    return (
+                      <div key={i} className="space-y-1 rounded border border-dashed p-3 text-sm text-muted-foreground">
+                        Soal #{i + 1} tidak ditemukan di bank soal saat ini.
+                      </div>
+                    );
+                  }
                   const benarIds = soal.jawaban.filter((x) => x.benar).map((x) => x.id);
                   const selesai = s.status === "selesai";
+                  const isEssay = soal.tipe === "essay";
                   const isCorrect =
                     selesai &&
+                    !isEssay &&
                     j.jawabanIds.length === benarIds.length &&
                     benarIds.every((id) => j.jawabanIds.includes(id));
                   return (
@@ -138,7 +156,7 @@ function HasilUjian() {
                         <span>
                           Soal #{i + 1} · {soal.tipe} ·{" "}
                           {selesai &&
-                            (soal.tipe === "essay" ? (
+                            (isEssay ? (
                               <span>Skor: {j.skor ?? <em>belum dinilai</em>}</span>
                             ) : isCorrect ? (
                               <span className="text-success">benar</span>
@@ -162,7 +180,7 @@ function HasilUjian() {
                                 <X className="h-4 w-4" />
                               </Button>
                             </>
-                          ) : (
+                          ) : isEssay ? (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -173,7 +191,7 @@ function HasilUjian() {
                             >
                               <Pencil className="h-3 w-3" />
                             </Button>
-                          )}
+                          ) : null}
                         </span>
                       </div>
                       <RichView html={soal.detail} />

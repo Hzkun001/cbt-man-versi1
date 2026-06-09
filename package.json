@@ -12,7 +12,10 @@
     "format": "prettier --write .",
     "prisma:validate": "prisma validate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:list": "playwright test --list"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -90,6 +93,7 @@
     "globals": "^15.15.0",
     "nitro": "3.0.260429-beta",
     "prettier": "^3.7.3",
+    "@playwright/test": "^1.54.2",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^7.3.1"

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { z } from "zod";
 import { modulRepo, topikRepo, soalRepo } from "@/lib/cbt/repos";
@@ -18,7 +18,7 @@ import { useAuthStore } from "@/lib/cbt/auth-store";
 import { visibleModuls, allowedTopikIdSet, isUnrestricted } from "@/lib/cbt/access";
 
 export const Route = createFileRoute("/_authenticated/admin/modul")({
-  component: ModulPage,
+  component: ModulRoute,
 });
 
 const BankSchema = z.object({
@@ -29,6 +29,17 @@ const BankSchema = z.object({
   soal: z.array(SoalSchema),
 });
 type Bank = z.infer<typeof BankSchema>;
+
+function ModulRoute() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isIndexRoute = pathname === "/admin/modul" || pathname === "/admin/modul/";
+
+  if (!isIndexRoute) {
+    return <Outlet />;
+  }
+
+  return <ModulPage />;
+}
 
 function ModulPage() {
   const user = useAuthStore((s) => s.user);

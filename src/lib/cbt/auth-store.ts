@@ -14,6 +14,30 @@ type AuthState = {
   setHydrated: () => void;
 };
 
+export function readPersistedAuthSnapshot(): Pick<AuthState, "userId" | "user"> {
+  if (typeof window === "undefined") {
+    return { userId: null, user: null };
+  }
+
+  const raw = window.localStorage.getItem("cbtman:auth");
+  if (!raw) {
+    return { userId: null, user: null };
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as {
+      state?: Partial<Pick<AuthState, "userId" | "user">>;
+    };
+
+    return {
+      userId: parsed.state?.userId ?? null,
+      user: parsed.state?.user ?? null,
+    };
+  } catch {
+    return { userId: null, user: null };
+  }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -40,7 +64,7 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "cbtman:auth",
       storage: createJSONStorage(() => (typeof window !== "undefined" ? window.localStorage : (undefined as never))),
-      partialize: (s) => ({ userId: s.userId }),
+      partialize: (s) => ({ userId: s.userId, user: s.user }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated();
         void state?.refresh();

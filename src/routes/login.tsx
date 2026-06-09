@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { hydrateRepos } from "@/lib/cbt/repos";
-import { useAuthStore } from "@/lib/cbt/auth-store";
+import { readPersistedAuthSnapshot, useAuthStore } from "@/lib/cbt/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,9 @@ export const Route = createFileRoute("/login")({
   beforeLoad: () => {
     if (typeof window === "undefined") return;
     const { user } = useAuthStore.getState();
-    if (user) throw redirect({ to: user.role === "peserta" ? "/peserta" : "/admin" });
+    const persisted = readPersistedAuthSnapshot();
+    const activeUser = user ?? persisted.user;
+    if (activeUser) throw redirect({ to: activeUser.role === "peserta" ? "/peserta" : "/admin" });
   },
   component: LoginPage,
 });
@@ -28,11 +30,25 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const login = useAuthStore((s) => s.login);
+  const user = useAuthStore((s) => s.user);
+  const hydrated = useAuthStore((s) => s.hydrated);
   const navigate = useNavigate();
 
   useEffect(() => {
     void hydrateRepos();
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const activeUser = user ?? readPersistedAuthSnapshot().user;
+    if (!activeUser) return;
+
+    void navigate({
+      to: activeUser.role === "peserta" ? "/peserta" : "/admin",
+      replace: true,
+    });
+  }, [hydrated, navigate, user]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

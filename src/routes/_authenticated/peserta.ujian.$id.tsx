@@ -17,22 +17,24 @@ export const Route = createFileRoute("/_authenticated/peserta/ujian/$id")({
 
 function PreUjian() {
   const { id } = useParams({ from: "/_authenticated/peserta/ujian/$id" });
-  const user = useAuthStore((s) => s.user)!;
+  const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const ujian = ujianRepo.byId(id);
   const [token, setToken] = useState("");
   const [agree, setAgree] = useState(false);
+  const tokenInputId = `token-ujian-${id}`;
 
+  if (!user) return <div>Pengguna tidak ditemukan</div>;
   if (!ujian) return <div>Ujian tidak ditemukan</div>;
   const sesiSelesai = sesiRepo.all().find((s) => s.ujianId === id && s.pesertaId === user.id && s.status === "selesai");
 
   async function mulai() {
     if (!agree) { toast.error("Centang persetujuan dulu"); return; }
-    if (ujian!.tokenAktif) {
+    if (ujian.tokenAktif) {
       const kode = token.trim().toUpperCase();
       if (kode.length === 0) { toast.error("Masukkan token"); return; }
       const tokenRow = tokenRepo.all().find(
-        (t) => t.ujianId === ujian!.id && t.kode.toUpperCase() === kode,
+        (t) => t.ujianId === ujian.id && t.kode.toUpperCase() === kode,
       );
       if (!tokenRow) { toast.error("Token tidak valid untuk ujian ini"); return; }
       if (tokenRow.dipakaiOleh && tokenRow.dipakaiOleh !== user.id) {
@@ -43,13 +45,13 @@ function PreUjian() {
         tokenRepo.upsert({ ...tokenRow, dipakaiOleh: user.id, dipakaiAt: Date.now() });
       }
     }
-    if (ujian!.fullscreenWajib) {
+    if (ujian.fullscreenWajib) {
       try { await document.documentElement.requestFullscreen(); } catch { /* ignore */ }
     }
-    const sesi = findOrCreateSesi(ujian!.id, user.id);
-    const started = sesi.status === "sedang" ? sesi : startSesi(sesi, ujian!);
+    const sesi = findOrCreateSesi(ujian.id, user.id);
+    const started = sesi.status === "sedang" ? sesi : startSesi(sesi, ujian);
     sesiRepo.upsert(started);
-    navigate({ to: "/peserta/ujian/$id/kerjakan", params: { id: ujian!.id } });
+    navigate({ to: "/peserta/ujian/$id/kerjakan", params: { id: ujian.id } });
   }
 
   return (
@@ -74,7 +76,10 @@ function PreUjian() {
           </ul>
         </div>
         {ujian.tokenAktif && (
-          <div><Label>Token ujian</Label><Input value={token} onChange={(e) => setToken(e.target.value)} /></div>
+          <div>
+            <Label htmlFor={tokenInputId}>Token ujian</Label>
+            <Input id={tokenInputId} value={token} onChange={(e) => setToken(e.target.value)} />
+          </div>
         )}
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />

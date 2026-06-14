@@ -1,16 +1,18 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { readPersistedAuthSnapshot, useAuthStore } from "@/lib/cbt/auth-store";
+import { useAuthStore } from "@/lib/cbt/auth-store";
+import { validateSessionServer } from "@/lib/server/repos/functions";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: ({ location }) => {
-    const { user } = useAuthStore.getState();
-    const persisted = readPersistedAuthSnapshot();
-    const activeUser = user ?? persisted.user;
-    if (!activeUser) {
+  beforeLoad: async ({ location }) => {
+    // Validasi otoritatif via cookie httpOnly + row Session (BUKAN state client).
+    // Tutup window deaktivasi: aktif=false / sesi expired / cookie tamper → redirect /login.
+    const { user } = await validateSessionServer();
+    useAuthStore.getState().setUser(user);
+    if (!user) {
       throw redirect({ to: "/login", search: { redirect: location.href } as never });
     }
-    return { user: activeUser };
+    return { user };
   },
   component: () => <Outlet />,
 });

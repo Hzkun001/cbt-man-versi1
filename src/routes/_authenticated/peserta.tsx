@@ -23,7 +23,9 @@ function PesertaLayout() {
       <header className="border-b bg-card">
         <div className="container mx-auto flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-2 font-semibold">
-            <span className="grid h-7 w-7 place-items-center rounded-md bg-primary text-primary-foreground">Z</span>
+            <span className="grid h-7 w-7 place-items-center rounded-md bg-primary text-primary-foreground">
+              Z
+            </span>
             {appName}
           </div>
           <div className="flex items-center gap-3">
@@ -31,8 +33,8 @@ function PesertaLayout() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                logout();
+              onClick={async () => {
+                await logout();
                 navigate({ to: "/login" });
               }}
             >

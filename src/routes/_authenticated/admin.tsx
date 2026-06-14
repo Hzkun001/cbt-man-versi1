@@ -1,4 +1,11 @@
-import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  Link,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useAuthStore } from "@/lib/cbt/auth-store";
 import { configRepo } from "@/lib/cbt/repos";
 import { type NavKey } from "@/lib/cbt/types";
@@ -50,7 +57,13 @@ const navItems: NavItem[] = [
   { to: "/admin/evaluasi", label: "Evaluasi Essay", icon: PenLine, key: "evaluasi" },
   { to: "/admin/laporan", label: "Laporan", icon: BarChart3, key: "laporan" },
   { to: "/admin/leaderboard", label: "Leaderboard", icon: Trophy, key: "leaderboard" },
-  { to: "/admin/pengaturan", label: "Pengaturan", icon: Settings, key: "pengaturan", adminOnly: true },
+  {
+    to: "/admin/pengaturan",
+    label: "Pengaturan",
+    icon: Settings,
+    key: "pengaturan",
+    adminOnly: true,
+  },
   { to: "/admin/tools", label: "Backup & Tools", icon: Wrench, key: "tools", adminOnly: true },
 ];
 
@@ -113,8 +126,8 @@ function AdminLayout() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                logout();
+              onClick={async () => {
+                await logout();
                 navigate({ to: "/login" });
               }}
             >

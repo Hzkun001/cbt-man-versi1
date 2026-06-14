@@ -1,8 +1,5 @@
-import {
-  getCbtSnapshot,
-  mutateEntity,
-  saveConfigServer,
-} from "@/lib/server/repos/functions";
+import { getCbtSnapshot, mutateEntity, saveConfigServer } from "@/lib/server/repos/functions";
+import { toast } from "sonner";
 import type {
   AppConfig,
   Group,
@@ -69,9 +66,14 @@ function applySnapshot(snapshot: Snapshot) {
 
 export async function hydrateRepos(): Promise<void> {
   if (!loadPromise) {
-    loadPromise = getCbtSnapshot().then((snapshot) => {
-      applySnapshot(snapshot);
-    });
+    loadPromise = getCbtSnapshot()
+      .then((snapshot) => {
+        applySnapshot(snapshot);
+      })
+      .catch((e) => {
+        loadPromise = null;
+        throw e;
+      });
   }
   await loadPromise;
 }
@@ -82,11 +84,42 @@ function upsertArrayItem<T extends { id: string }>(list: T[], item: T) {
   else list.push(item);
 }
 
+type MutationResult = { ok: boolean; error?: string };
+
+type EntityName = "users" | "groups" | "modul" | "topik" | "soal" | "ujian" | "token" | "sesi";
+
+function notifyMutationFailure(entity: string, error: string): void {
+  toast.error(`Gagal menyimpan ${entity}: ${error}`);
+  invalidateReposCache();
+  void hydrateRepos();
+}
+
+function runEntityMutation(
+  entity: EntityName,
+  action: "upsert" | "remove" | "bulkSet",
+  payload: unknown,
+): Promise<MutationResult> {
+  return mutateEntity({ data: { entity, action, payload } })
+    .then((r) => {
+      if (!r.ok) notifyMutationFailure(entity, r.error);
+      return r;
+    })
+    .catch((e) => {
+      const error = e instanceof Error ? e.message : String(e);
+      notifyMutationFailure(entity, error);
+      return { ok: false, error };
+    });
+}
+
 function createRepo<T extends { id: string }>(
-  entity: "users" | "groups" | "modul" | "topik" | "soal" | "ujian" | "token" | "sesi",
+  entity: EntityName,
   getList: () => T[],
   setList: (items: T[]) => void,
 ) {
+  let pending: Promise<MutationResult> | null = null;
+  function enqueue(action: "upsert" | "remove" | "bulkSet", payload: unknown): void {
+    pending = Promise.resolve(pending).then(() => runEntityMutation(entity, action, payload));
+  }
   return {
     all(): T[] {
       return getList().slice();
@@ -98,44 +131,98 @@ function createRepo<T extends { id: string }>(
       const next = getList().slice();
       upsertArrayItem(next, item);
       setList(next);
-      void mutateEntity({ data: { entity, action: "upsert", payload: item } });
+      enqueue("upsert", item);
       return item;
     },
     remove(id: string): void {
       setList(getList().filter((item) => item.id !== id));
-      void mutateEntity({ data: { entity, action: "remove", payload: { id } } });
+      enqueue("remove", { id });
     },
     bulkSet(items: T[]): void {
       setList(items.slice());
-      void mutateEntity({ data: { entity, action: "bulkSet", payload: items } });
+      enqueue("bulkSet", items);
+    },
+    async flush(): Promise<MutationResult> {
+      const p = pending;
+      if (!p) return { ok: true };
+      const result = await p;
+      if (pending === p) pending = null;
+      return result;
     },
   };
 }
 
-export const usersRepo = createRepo("users", () => cache.users, (items) => {
-  cache.users = items;
-});
-export const groupsRepo = createRepo("groups", () => cache.groups, (items) => {
-  cache.groups = items;
-});
-export const modulRepo = createRepo("modul", () => cache.modul, (items) => {
-  cache.modul = items;
-});
-export const topikRepo = createRepo("topik", () => cache.topik, (items) => {
-  cache.topik = items;
-});
-export const soalRepo = createRepo("soal", () => cache.soal, (items) => {
-  cache.soal = items;
-});
-export const ujianRepo = createRepo("ujian", () => cache.ujian, (items) => {
-  cache.ujian = items;
-});
-export const tokenRepo = createRepo("token", () => cache.token, (items) => {
-  cache.token = items;
-});
-export const sesiRepo = createRepo("sesi", () => cache.sesi, (items) => {
-  cache.sesi = items;
-});
+export const usersRepo = createRepo(
+  "users",
+  () => cache.users,
+  (items) => {
+    cache.users = items;
+  },
+);
+export const groupsRepo = createRepo(
+  "groups",
+  () => cache.groups,
+  (items) => {
+    cache.groups = items;
+  },
+);
+export const modulRepo = createRepo(
+  "modul",
+  () => cache.modul,
+  (items) => {
+    cache.modul = items;
+  },
+);
+export const topikRepo = createRepo(
+  "topik",
+  () => cache.topik,
+  (items) => {
+    cache.topik = items;
+  },
+);
+export const soalRepo = createRepo(
+  "soal",
+  () => cache.soal,
+  (items) => {
+    cache.soal = items;
+  },
+);
+export const ujianRepo = createRepo(
+  "ujian",
+  () => cache.ujian,
+  (items) => {
+    cache.ujian = items;
+  },
+);
+export const tokenRepo = createRepo(
+  "token",
+  () => cache.token,
+  (items) => {
+    cache.token = items;
+  },
+);
+export const sesiRepo = createRepo(
+  "sesi",
+  () => cache.sesi,
+  (items) => {
+    cache.sesi = items;
+  },
+);
+
+let configPending: Promise<MutationResult> | null = null;
+
+function runConfigMutation(cfg: AppConfig): Promise<MutationResult> {
+  return saveConfigServer({ data: cfg })
+    .then((r) => {
+      if (!r.ok) notifyMutationFailure("config", r.error);
+      return r;
+    })
+    .catch((e) => {
+      const error = e instanceof Error ? e.message : String(e);
+      notifyMutationFailure("config", error);
+      return { ok: false, error };
+    });
+}
 
 export const configRepo = {
   get(): AppConfig {
@@ -143,6 +230,13 @@ export const configRepo = {
   },
   set(cfg: AppConfig): void {
     cache.config = cfg;
-    void saveConfigServer({ data: cfg });
+    configPending = Promise.resolve(configPending).then(() => runConfigMutation(cfg));
+  },
+  async flush(): Promise<MutationResult> {
+    const p = configPending;
+    if (!p) return { ok: true };
+    const result = await p;
+    if (configPending === p) configPending = null;
+    return result;
   },
 };

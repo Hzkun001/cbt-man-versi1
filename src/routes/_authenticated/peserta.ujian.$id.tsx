@@ -18,45 +18,48 @@ export const Route = createFileRoute("/_authenticated/peserta/ujian/$id")({
 function PreUjian() {
   const { id } = useParams({ from: "/_authenticated/peserta/ujian/$id" });
   const user = useAuthStore((s) => s.user);
-  const navigate = useNavigate();
   const ujian = ujianRepo.byId(id);
-  const [token, setToken] = useState("");
-  const [agree, setAgree] = useState(false);
-  const tokenInputId = `token-ujian-${id}`;
 
   if (!user) return <div>Pengguna tidak ditemukan</div>;
   if (!ujian) return <div>Ujian tidak ditemukan</div>;
 
-  const currentUser = user;
-  const currentUjian = ujian;
+  return <PreUjianContent user={user} ujian={ujian} />;
+}
+
+function PreUjianContent({ user, ujian }: { user: NonNullable<ReturnType<typeof useAuthStore.getState>["user"]>; ujian: NonNullable<ReturnType<typeof ujianRepo.byId>> }) {
+  const navigate = useNavigate();
+  const [token, setToken] = useState("");
+  const [agree, setAgree] = useState(false);
+  const tokenInputId = `token-ujian-${ujian.id}`;
+
   const sesiSelesai = sesiRepo
     .all()
-    .find((s) => s.ujianId === id && s.pesertaId === currentUser.id && s.status === "selesai");
+    .find((s) => s.ujianId === ujian.id && s.pesertaId === user.id && s.status === "selesai");
 
   async function mulai() {
     if (!agree) { toast.error("Centang persetujuan dulu"); return; }
-    if (currentUjian.tokenAktif) {
+    if (ujian.tokenAktif) {
       const kode = token.trim().toUpperCase();
       if (kode.length === 0) { toast.error("Masukkan token"); return; }
       const tokenRow = tokenRepo.all().find(
-        (t) => t.ujianId === currentUjian.id && t.kode.toUpperCase() === kode,
+        (t) => t.ujianId === ujian.id && t.kode.toUpperCase() === kode,
       );
       if (!tokenRow) { toast.error("Token tidak valid untuk ujian ini"); return; }
-      if (tokenRow.dipakaiOleh && tokenRow.dipakaiOleh !== currentUser.id) {
+      if (tokenRow.dipakaiOleh && tokenRow.dipakaiOleh !== user.id) {
         toast.error("Token sudah dipakai peserta lain");
         return;
       }
       if (!tokenRow.dipakaiOleh) {
-        tokenRepo.upsert({ ...tokenRow, dipakaiOleh: currentUser.id, dipakaiAt: Date.now() });
+        tokenRepo.upsert({ ...tokenRow, dipakaiOleh: user.id, dipakaiAt: Date.now() });
       }
     }
-    if (currentUjian.fullscreenWajib) {
+    if (ujian.fullscreenWajib) {
       try { await document.documentElement.requestFullscreen(); } catch { /* ignore */ }
     }
-    const sesi = findOrCreateSesi(currentUjian.id, currentUser.id);
-    const started = sesi.status === "sedang" ? sesi : startSesi(sesi, currentUjian);
+    const sesi = findOrCreateSesi(ujian.id, user.id);
+    const started = sesi.status === "sedang" ? sesi : startSesi(sesi, ujian);
     sesiRepo.upsert(started);
-    navigate({ to: "/peserta/ujian/$id/kerjakan", params: { id: currentUjian.id } });
+    navigate({ to: "/peserta/ujian/$id/kerjakan", params: { id: ujian.id } });
   }
 
   return (

@@ -63,7 +63,7 @@ Before opening a pull request, run:
 ```bash
 npm run prisma:validate
 npm run prisma:seed
-npx tsc --noEmit
+npm run typecheck
 node scripts/check-admin-routes.mjs
 npm run build
 ```

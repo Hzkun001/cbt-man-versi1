@@ -6,6 +6,7 @@ import type {
   AppConfig,
   Group,
   Modul,
+  NavKey,
   Soal,
   SesiUjian,
   TokenUjian,
@@ -295,6 +296,174 @@ async function buildSnapshotForUser(caller: UserRow): Promise<Snapshot> {
   return pesertaSnapshot(rows, caller);
 }
 
+type MutationAction = "upsert" | "remove" | "bulkSet";
+
+type MutationAuthResult = { ok: true } | { ok: false; error: string };
+
+const OPERATOR_SESSION_KEYS: NavKey[] = ["ujian", "hasil", "evaluasi", "laporan", "leaderboard"];
+
+function allowedTopikIdsForCaller(caller: UserRow): Set<string> | null {
+  if (caller.role === "admin") return null;
+  if (caller.role !== "operator") return new Set();
+  const ids = parseJson<string[]>(caller.allowedTopikIds, []);
+  if (ids.length === 0) return null;
+  return new Set(ids);
+}
+
+async function operatorAccessKeys(): Promise<Set<NavKey>> {
+  const config = await prisma.appConfig.findUnique({ where: { id: "app" } });
+  const roleAccess = buildConfig(config).roleAccess;
+  return new Set((roleAccess.operator ?? []) as NavKey[]);
+}
+
+async function operatorHasNav(caller: UserRow, key: NavKey): Promise<boolean> {
+  if (caller.role !== "operator") return false;
+  const keys = await operatorAccessKeys();
+  return keys.has(key);
+}
+
+async function operatorHasAnyNav(caller: UserRow, keys: NavKey[]): Promise<boolean> {
+  if (caller.role !== "operator") return false;
+  const allowed = await operatorAccessKeys();
+  return keys.some((key) => allowed.has(key));
+}
+
+function operatorCanTouchTopikId(caller: UserRow, topikId: string): boolean {
+  const allowed = allowedTopikIdsForCaller(caller);
+  if (!allowed) return true;
+  return allowed.has(topikId);
+}
+
+function operatorCanTouchTopicSets(caller: UserRow, topicSets: Ujian["topicSets"]): boolean {
+  return topicSets.every((item) => operatorCanTouchTopikId(caller, item.topikId));
+}
+
+async function operatorCanTouchModul(caller: UserRow, modulId: string): Promise<boolean> {
+  const allowed = allowedTopikIdsForCaller(caller);
+  if (!allowed) return true;
+  const count = await prisma.topik.count({ where: { modulId, id: { in: [...allowed] } } });
+  return count > 0;
+}
+
+async function operatorCanTouchSoal(caller: UserRow, soalId: string): Promise<boolean> {
+  const soal = await prisma.soal.findUnique({ where: { id: soalId }, select: { topikId: true } });
+  return !!soal && operatorCanTouchTopikId(caller, soal.topikId);
+}
+
+async function operatorCanTouchUjian(caller: UserRow, ujianId: string): Promise<boolean> {
+  const ujian = await prisma.ujian.findUnique({ where: { id: ujianId }, select: { topicSets: true } });
+  if (!ujian) return false;
+  const topicSets = parseJson<Ujian["topicSets"]>(ujian.topicSets, []);
+  return operatorCanTouchTopicSets(caller, topicSets);
+}
+
+async function pesertaCanTouchUjian(caller: UserRow, ujianId: string): Promise<boolean> {
+  if (caller.role !== "peserta") return false;
+  const ujian = await prisma.ujian.findUnique({ where: { id: ujianId }, select: { groupIds: true } });
+  if (!ujian) return false;
+  const groupIds = parseJson<string[]>(ujian.groupIds, []);
+  return groupIds.length === 0 || (!!caller.groupId && groupIds.includes(caller.groupId));
+}
+
+async function requireCaller(): Promise<UserRow | null> {
+  await seedIfNeeded();
+  return validateSession(readSessionToken());
+}
+
+async function requireAdminResult(): Promise<MutationAuthResult> {
+  const caller = await requireCaller();
+  if (!caller || caller.role !== "admin") return { ok: false, error: "Forbidden" };
+  return { ok: true };
+}
+
+async function authorizeMutation(caller: UserRow | null, entity: z.infer<typeof entitySchema>, action: MutationAction, payload: unknown): Promise<MutationAuthResult> {
+  if (!caller) return { ok: false, error: "Forbidden" };
+  if (caller.role === "admin") return { ok: true };
+
+  if (entity === "users" || entity === "groups") return { ok: false, error: "Forbidden" };
+  if (action === "bulkSet") return { ok: false, error: "Forbidden" };
+
+  if (caller.role === "operator") {
+    if (entity === "modul") {
+      if (!(await operatorHasNav(caller, "modul"))) return { ok: false, error: "Forbidden" };
+      if (action === "remove") {
+        const id = String((payload as { id?: string }).id ?? "");
+        return (await operatorCanTouchModul(caller, id)) ? { ok: true } : { ok: false, error: "Forbidden" };
+      }
+      return allowedTopikIdsForCaller(caller) === null ? { ok: true } : { ok: false, error: "Forbidden" };
+    }
+
+    if (entity === "topik") {
+      if (!(await operatorHasNav(caller, "modul"))) return { ok: false, error: "Forbidden" };
+      return allowedTopikIdsForCaller(caller) === null ? { ok: true } : { ok: false, error: "Forbidden" };
+    }
+
+    if (entity === "soal") {
+      if (!(await operatorHasNav(caller, "modul"))) return { ok: false, error: "Forbidden" };
+      if (action === "remove") {
+        const id = String((payload as { id?: string }).id ?? "");
+        return (await operatorCanTouchSoal(caller, id)) ? { ok: true } : { ok: false, error: "Forbidden" };
+      }
+      const item = payload as Soal;
+      return operatorCanTouchTopikId(caller, item.topikId) ? { ok: true } : { ok: false, error: "Forbidden" };
+    }
+
+    if (entity === "ujian") {
+      if (!(await operatorHasNav(caller, "ujian"))) return { ok: false, error: "Forbidden" };
+      if (action === "remove") {
+        const id = String((payload as { id?: string }).id ?? "");
+        return (await operatorCanTouchUjian(caller, id)) ? { ok: true } : { ok: false, error: "Forbidden" };
+      }
+      const item = payload as Ujian;
+      return operatorCanTouchTopicSets(caller, item.topicSets) ? { ok: true } : { ok: false, error: "Forbidden" };
+    }
+
+    if (entity === "token") {
+      if (!(await operatorHasNav(caller, "ujian"))) return { ok: false, error: "Forbidden" };
+      const id = action === "remove" ? undefined : (payload as TokenUjian).ujianId;
+      if (id) return (await operatorCanTouchUjian(caller, id)) ? { ok: true } : { ok: false, error: "Forbidden" };
+      const existing = await prisma.tokenUjian.findUnique({ where: { id: String((payload as { id?: string }).id ?? "") }, select: { ujianId: true } });
+      return existing && (await operatorCanTouchUjian(caller, existing.ujianId)) ? { ok: true } : { ok: false, error: "Forbidden" };
+    }
+
+    if (entity === "sesi") {
+      if (!(await operatorHasAnyNav(caller, OPERATOR_SESSION_KEYS))) return { ok: false, error: "Forbidden" };
+      const ujianId = action === "remove"
+        ? (await prisma.sesiUjian.findUnique({ where: { id: String((payload as { id?: string }).id ?? "") }, select: { ujianId: true } }))?.ujianId
+        : (payload as SesiUjian).ujianId;
+      return ujianId && (await operatorCanTouchUjian(caller, ujianId)) ? { ok: true } : { ok: false, error: "Forbidden" };
+    }
+
+    return { ok: false, error: "Forbidden" };
+  }
+
+  if (caller.role === "peserta") {
+    if (entity === "token" && action === "upsert") {
+      const item = payload as TokenUjian;
+      if (item.dipakaiOleh !== caller.id) return { ok: false, error: "Forbidden" };
+      if (!(await pesertaCanTouchUjian(caller, item.ujianId))) return { ok: false, error: "Forbidden" };
+      const existing = await prisma.tokenUjian.findUnique({ where: { id: item.id } });
+      if (!existing) return { ok: false, error: "Forbidden" };
+      if (existing.ujianId !== item.ujianId || existing.kode !== item.kode) return { ok: false, error: "Forbidden" };
+      if (existing.dipakaiOleh && existing.dipakaiOleh !== caller.id) return { ok: false, error: "Forbidden" };
+      return { ok: true };
+    }
+
+    if (entity === "sesi" && action === "upsert") {
+      const item = payload as SesiUjian;
+      if (item.pesertaId !== caller.id) return { ok: false, error: "Forbidden" };
+      if (!(await pesertaCanTouchUjian(caller, item.ujianId))) return { ok: false, error: "Forbidden" };
+      const existing = await prisma.sesiUjian.findUnique({ where: { id: item.id }, select: { pesertaId: true, ujianId: true } });
+      if (existing && (existing.pesertaId !== caller.id || existing.ujianId !== item.ujianId)) {
+        return { ok: false, error: "Forbidden" };
+      }
+      return { ok: true };
+    }
+  }
+
+  return { ok: false, error: "Forbidden" };
+}
+
 let seedPromise: Promise<void> | null = null;
 
 function seedIfNeeded(): Promise<void> {
@@ -373,8 +542,7 @@ export const logoutServer = createServerFn({ method: "POST" }).handler(async () 
 export const revokeUserSessionsServer = createServerFn({ method: "POST" })
   .validator(z.object({ userId: z.string().min(1) }))
   .handler(async ({ data }) => {
-    await seedIfNeeded();
-    const caller = await validateSession(readSessionToken());
+    const caller = await requireCaller();
     if (!caller || caller.role !== "admin") {
       return { ok: false as const, error: "Forbidden", deleted: 0 };
     }
@@ -448,7 +616,10 @@ export const mutateEntity = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     try {
       await seedIfNeeded();
+      const caller = await requireCaller();
       const { entity, action, payload } = data;
+      const auth = await authorizeMutation(caller, entity, action, payload);
+      if (!auth.ok) return { ok: false as const, error: auth.error };
       if (entity === "users") {
         await prisma.$transaction(async (tx) => {
           if (action === "remove") await tx.user.delete({ where: { id: String(payload.id) } });
@@ -748,7 +919,8 @@ export const saveConfigServer = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     try {
-      await seedIfNeeded();
+      const auth = await requireAdminResult();
+      if (!auth.ok) return { ok: false as const, error: auth.error };
       await prisma.appConfig.upsert({
         where: { id: "app" },
         update: { ...data, roleAccess: stringifyJson(data.roleAccess) },
@@ -775,6 +947,8 @@ export const importBackupServer = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    const auth = await requireAdminResult();
+    if (!auth.ok) return { ok: false as const, error: auth.error };
     await prisma.$transaction(async (tx) => {
       await tx.jawaban.deleteMany();
       await tx.sesiUjian.deleteMany();
@@ -867,6 +1041,8 @@ export const importBackupServer = createServerFn({ method: "POST" })
   });
 
 export const resetAllDataServer = createServerFn({ method: "POST" }).handler(async () => {
+  const auth = await requireAdminResult();
+  if (!auth.ok) return { ok: false as const, error: auth.error };
   await prisma.$transaction(async (tx) => {
     await tx.jawaban.deleteMany();
     await tx.sesiUjian.deleteMany();

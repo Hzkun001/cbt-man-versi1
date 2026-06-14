@@ -5,8 +5,23 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { uid } from "@/lib/server/db/id";
+import { prisma } from "@/lib/server/db/prisma";
+import { parseJson } from "@/lib/server/db/json";
+import { readSessionToken, validateSession } from "@/lib/server/db/session";
+import type { NavKey } from "@/lib/cbt/types";
 
 const uploadsDir = resolve(process.cwd(), "data", "uploads");
+const DEFAULT_OPERATOR_ROLE_ACCESS: NavKey[] = [
+  "dashboard",
+  "peserta",
+  "modul",
+  "files",
+  "ujian",
+  "hasil",
+  "evaluasi",
+  "laporan",
+  "leaderboard",
+];
 
 type StoredFileRecord = {
   id: string;
@@ -68,7 +83,35 @@ async function listMetas(): Promise<StoredFileRecord[]> {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
+async function requireCaller() {
+  return validateSession(readSessionToken());
+}
+
+async function operatorHasFilesAccess() {
+  const config = await prisma.appConfig.findUnique({ where: { id: "app" }, select: { roleAccess: true } });
+  const operatorAccess = parseJson<Record<string, string[]>>(config?.roleAccess, {
+    operator: [...DEFAULT_OPERATOR_ROLE_ACCESS],
+  }).operator;
+  return new Set((operatorAccess ?? []) as NavKey[]).has("files");
+}
+
+async function requireFileManagerAccess() {
+  const caller = await requireCaller();
+  if (!caller) return { ok: false as const, error: "Forbidden" };
+  if (caller.role === "admin") return { ok: true as const, caller };
+  if (caller.role === "operator" && (await operatorHasFilesAccess())) return { ok: true as const, caller };
+  return { ok: false as const, error: "Forbidden" };
+}
+
+async function requireAdmin() {
+  const caller = await requireCaller();
+  if (!caller || caller.role !== "admin") return { ok: false as const, error: "Forbidden" };
+  return { ok: true as const, caller };
+}
+
 export const listStoredFiles = createServerFn({ method: "GET" }).handler(async () => {
+  const auth = await requireFileManagerAccess();
+  if (!auth.ok) throw new Error(auth.error);
   return listMetas();
 });
 
@@ -81,6 +124,9 @@ export const uploadStoredFile = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    const auth = await requireFileManagerAccess();
+    if (!auth.ok) throw new Error(auth.error);
+
     await ensureUploadsDir();
     const id = uid("f_");
     const extension = extname(data.name).slice(0, 16);
@@ -102,6 +148,9 @@ export const uploadStoredFile = createServerFn({ method: "POST" })
 export const deleteStoredFile = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().min(1) }))
   .handler(async ({ data }) => {
+    const auth = await requireAdmin();
+    if (!auth.ok) return { ok: false as const, error: auth.error };
+
     const meta = await readMeta(data.id);
     if (!meta) return { ok: true as const };
 
@@ -113,6 +162,9 @@ export const deleteStoredFile = createServerFn({ method: "POST" })
 export const getStoredFileUrl = createServerFn({ method: "GET" })
   .validator(z.object({ id: z.string().min(1) }))
   .handler(async ({ data }) => {
+    const caller = await requireCaller();
+    if (!caller) throw new Error("Forbidden");
+
     const meta = await readMeta(data.id);
     if (!meta) return null;
 
@@ -137,8 +189,10 @@ const fileBackupSchema = z.object({
   dataBase64: z.string(),
 });
 
-// Export seluruh file asset (meta + blob base64) untuk paket backup.
 export const exportFilesServer = createServerFn({ method: "GET" }).handler(async () => {
+  const auth = await requireAdmin();
+  if (!auth.ok) throw new Error(auth.error);
+
   const metas = await listMetas();
   const files = await Promise.all(
     metas.map(async (meta) => {
@@ -149,14 +203,14 @@ export const exportFilesServer = createServerFn({ method: "GET" }).handler(async
   return files;
 });
 
-// Restore file asset dari paket backup (overwrite existing di data/uploads/).
 export const importFilesServer = createServerFn({ method: "POST" })
   .validator(z.array(fileBackupSchema))
   .handler(async ({ data }) => {
+    const auth = await requireAdmin();
+    if (!auth.ok) return { ok: false as const, error: auth.error };
+
     await ensureUploadsDir();
     for (const item of data) {
-      // Cegah path traversal dari backup tidak terpercaya: validasi id & extension,
-      // dan pastikan path resolusi tetap di dalam uploadsDir.
       if (!/^[A-Za-z0-9_-]+$/.test(item.id)) continue;
       if (item.extension !== "" && !/^\.[A-Za-z0-9]{1,16}$/.test(item.extension)) continue;
       const blobPath = resolve(filePath(item.id, item.extension));

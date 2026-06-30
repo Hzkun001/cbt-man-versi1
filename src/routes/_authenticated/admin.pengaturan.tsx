@@ -87,15 +87,19 @@ function PengaturanPage() {
         <CardContent className="space-y-4">
           <ToggleRow
             label="Kunci akses dari perangkat mobile"
-            desc="Tolak peserta yang membuka aplikasi dari layar kecil."
+            desc="Kontrol ini belum diberlakukan: membuka aplikasi dari perangkat mobile tetap diizinkan."
             checked={cfg.mobileLock}
             onChange={(v) => setCfg({ ...cfg, mobileLock: v })}
+            disabled
+            badge="Belum diberlakukan"
           />
           <ToggleRow
             label="Izinkan multi-device"
-            desc="Peserta boleh melanjutkan sesi yang sama di perangkat lain."
+            desc="Kontrol ini belum diberlakukan: jumlah perangkat aktif belum dibatasi oleh sistem."
             checked={cfg.multiDevice}
             onChange={(v) => setCfg({ ...cfg, multiDevice: v })}
+            disabled
+            badge="Belum diberlakukan"
           />
         </CardContent>
       </Card>
@@ -110,19 +114,33 @@ function ToggleRow({
   desc,
   checked,
   onChange,
+  disabled = false,
+  badge,
 }: {
   label: string;
   desc: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
+  badge?: string;
 }) {
   return (
     <div className="flex items-start justify-between gap-4 rounded border p-3">
       <div>
-        <div className="text-sm font-medium">{label}</div>
+        <div className="flex items-center gap-2 text-sm font-medium">
+          {label}
+          {badge && (
+            <span className="rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide text-muted-foreground">
+              {badge}
+            </span>
+          )}
+        </div>
         <div className="text-xs text-muted-foreground">{desc}</div>
       </div>
-      <Switch checked={checked} onCheckedChange={onChange} />
+      {/* Disabled controls are not yet enforced (Issue #13, V1 hide-and-document):
+          the Switch is non-interactive so it cannot imply protection that does
+          not exist. The stored config value is still shown read-only. */}
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
     </div>
   );
 }

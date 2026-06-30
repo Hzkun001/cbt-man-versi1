@@ -95,6 +95,8 @@ export const UjianSchema = z.object({
   beginAt: z.number().optional(),
   endAt: z.number().optional(),
   tokenAktif: z.boolean().default(false),
+  // ipRange: stored but NOT enforced (Issue #13, V1 hide-and-document). No UI
+  // input exposes it today; real CIDR/IP enforcement is deferred to V2.
   ipRange: z.string().default(""),
   groupIds: z.array(z.string()).default([]),
   topicSets: z.array(TopicSetSchema).default([]),
@@ -170,6 +172,10 @@ export const ConfigSchema = z.object({
   appName: z.string().default("CBT-MAN"),
   appDeskripsi: z.string().default("Aplikasi ujian berbasis komputer"),
   pesanLogin: z.string().default("Selamat datang di aplikasi ujian online"),
+  // mobileLock / multiDevice: stored but NOT enforced (Issue #13, V1
+  // hide-and-document). The settings UI shows these disabled with a "Belum
+  // diberlakukan" badge so they cannot imply protection. Real device/session
+  // enforcement is deferred to V2 (see deferred-work.md).
   mobileLock: z.boolean().default(false),
   multiDevice: z.boolean().default(false),
   // RBAC menu matrix per role -> array of nav keys allowed

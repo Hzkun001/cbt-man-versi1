@@ -1,7 +1,12 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { validateSessionServer } from "@/lib/server/repos/functions";
 
+type SearchParams = { redirect?: string };
+
 export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>): SearchParams => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
   beforeLoad: async ({ search }) => {
     const { user } = await validateSessionServer();
     if (user) {
@@ -11,7 +16,7 @@ export const Route = createFileRoute("/login")({
       to: "/",
       search: {
         login: true,
-        redirect: (search as any).redirect,
+        redirect: search.redirect,
       },
     });
   },

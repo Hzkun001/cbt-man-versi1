@@ -11,7 +11,7 @@ if (!process.env.DATABASE_URL && existsSync(envPath)) {
     const match = trimmed.match(/^([A-Z0-9_]+)=(.*)$/i);
     if (!match) continue;
     const [, key, rawValue] = match;
-    const value = rawValue.replace(/^['\"]|['\"]$/g, "");
+    const value = rawValue.replace(/^['"]|['"]$/g, "");
     if (!(key in process.env)) process.env[key] = value;
   }
 }

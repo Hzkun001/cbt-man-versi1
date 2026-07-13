@@ -53,13 +53,12 @@ export function LoginModal({ isOpen, onClose, redirectUrl }: LoginModalProps) {
         return;
       }
       toast.success("Berhasil masuk");
-      
-      // Redirect logic
-      if (redirectUrl) {
-        window.location.href = redirectUrl;
-      } else {
-        window.location.href = res.role === "peserta" ? "/peserta" : "/admin";
-      }
+
+      const fallback = res.role === "peserta" ? "/peserta" : "/admin";
+      const redirect = redirectUrl?.startsWith("/")
+        ? new URL(redirectUrl, window.location.origin)
+        : undefined;
+      window.location.href = redirect?.origin === window.location.origin ? redirect.href : fallback;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal memuat data sesi");
     } finally {
@@ -68,7 +67,12 @@ export function LoginModal({ isOpen, onClose, redirectUrl }: LoginModalProps) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="text-center sm:text-center flex flex-col items-center">
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-primary text-lg font-semibold text-primary-foreground font-sans">

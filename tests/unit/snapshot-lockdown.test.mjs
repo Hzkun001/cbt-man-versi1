@@ -8,7 +8,8 @@
  * clients) is already fixed in production code:
  *   - `getCbtSnapshot` requires a valid session (fails closed).
  *   - `publicUser` strips `passwordHash` to "".
- *   - `/` and `/login` boot via `loadPublicBootConfig`, never `hydrateRepos`.
+ *   - `/` loads public boot config; `/login` redirects to that public route.
+ *   - Neither public route calls `hydrateRepos`.
  *
  * These structural/contract tests PIN those invariants so a future refactor
  * cannot silently re-open the leak. They are intentionally source-grep based
@@ -64,12 +65,26 @@ test("landing route boots via loadPublicBootConfig and never hydrateRepos", () =
   );
 });
 
-test("login route boots via loadPublicBootConfig and never hydrateRepos", () => {
+test("login route redirects anonymous users to the public landing route", () => {
   const src = read("src/routes/login.tsx");
-  assert.ok(/loadPublicBootConfig/.test(src), "login.tsx must use loadPublicBootConfig");
+  assert.match(
+    src,
+    /throw redirect\(\{\s*to:\s*"\/",\s*search:\s*\{\s*login:\s*true,\s*redirect:\s*search\.redirect,/s,
+    "login.tsx must redirect anonymous users to the landing-page login modal",
+  );
   assert.ok(
     !/\bhydrateRepos\b/.test(src),
     "login.tsx must NOT call hydrateRepos (anonymous full-snapshot leak)",
+  );
+});
+
+test("login modal only follows same-origin redirect URLs", () => {
+  const src = read("src/components/LoginModal.tsx");
+  assert.match(src, /redirectUrl\?\.startsWith\("\/"\)/, "redirect must be root-relative");
+  assert.match(
+    src,
+    /redirect\?\.origin === window\.location\.origin/,
+    "redirect must remain on the current origin",
   );
 });
 

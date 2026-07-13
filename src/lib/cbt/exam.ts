@@ -32,14 +32,14 @@ export function buildSesi(ujian: Ujian, pesertaId: string, user?: User | null): 
     if (ts.kesulitan) pool = pool.filter((s) => s.kesulitan === ts.kesulitan);
     const chosen = (ts.acakSoal ? shuffle(pool) : pool).slice(0, ts.jumlah);
     if (chosen.length < ts.jumlah) {
-      throw new Error(`Bank soal untuk topik terkait ujian \"${ujian.nama}\" belum cukup.`);
+      throw new Error(`Bank soal untuk topik terkait ujian "${ujian.nama}" belum cukup.`);
     }
     soalTerpilih.push(...chosen);
   }
 
   if (soalTerpilih.length === 0) {
     throw new Error(
-      `Bank soal untuk ujian \"${ujian.nama}\" belum cukup atau tidak cocok dengan filter topik.`,
+      `Bank soal untuk ujian "${ujian.nama}" belum cukup atau tidak cocok dengan filter topik.`,
     );
   }
 

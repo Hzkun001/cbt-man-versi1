@@ -161,7 +161,7 @@ test("collision retry loop creates the requested count even with a duplicate-pro
 test("no `Math.random()` is used in the token code generation files", () => {
   const candidates = [
     "src/lib/server/repos/functions.ts",
-    "src/lib/server/db/id.ts",
+    "src/lib/server/db/id.server.ts",
   ];
   for (const rel of candidates) {
     const abs = resolve(process.cwd(), rel);

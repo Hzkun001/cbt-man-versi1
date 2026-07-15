@@ -121,13 +121,13 @@ function buildSesiRecord({ uid, now, ujian, peserta, questionEntries, answerPlan
 
 export async function createSeedDataset({ uid, now, hashPassword }) {
   const ts = now ?? Date.now();
-  const schoolName = "SMA Nusantara Cendekia";
+  const schoolName = "Universitas Teknologi Nusantara";
 
   const groups = [
-    { id: uid("g_"), nama: "X IPA 1", keterangan: `${schoolName} · Kelas X IPA 1` },
-    { id: uid("g_"), nama: "XI IPA 2", keterangan: `${schoolName} · Kelas XI IPA 2` },
-    { id: uid("g_"), nama: "XII IPS 1", keterangan: `${schoolName} · Kelas XII IPS 1` },
-    { id: uid("g_"), nama: "XII Bahasa", keterangan: `${schoolName} · Kelas XII Bahasa` },
+    { id: uid("g_"), nama: "Teknik Informatika", keterangan: `${schoolName} · Program Studi Teknik Informatika` },
+    { id: uid("g_"), nama: "Sistem Informasi", keterangan: `${schoolName} · Program Studi Sistem Informasi` },
+    { id: uid("g_"), nama: "Ilmu Komputer", keterangan: `${schoolName} · Program Studi Ilmu Komputer` },
+    { id: uid("g_"), nama: "Bisnis Digital", keterangan: `${schoolName} · Program Studi Bisnis Digital` },
   ];
 
   const admin = {
@@ -155,9 +155,9 @@ export async function createSeedDataset({ uid, now, hashPassword }) {
   };
 
   const guruNames = [
-    ["guru_mtk", "Dian Puspitasari, S.Pd"],
-    ["guru_fisika", "Andri Wijaya, S.Pd"],
-    ["guru_biologi", "Rina Marlina, S.Pd"],
+    ["dosen_rpl", "Dr. Dian Puspitasari, S.Kom., M.Cs."],
+    ["dosen_db", "Prof. Andri Wijaya, Ph.D."],
+    ["dosen_algo", "Rina Marlina, M.Kom."],
   ];
 
   const pesertaSeed = [
@@ -172,18 +172,18 @@ export async function createSeedDataset({ uid, now, hashPassword }) {
   ];
 
   const modul = [
-    { id: uid("m_"), nama: "Matematika", aktif: true },
-    { id: uid("m_"), nama: "Fisika", aktif: true },
-    { id: uid("m_"), nama: "Biologi", aktif: true },
+    { id: uid("m_"), nama: "Pemrograman Web", aktif: true },
+    { id: uid("m_"), nama: "Basis Data", aktif: true },
+    { id: uid("m_"), nama: "Algoritma", aktif: true },
   ];
 
   const topik = [
-    { id: uid("t_"), modulId: modul[0].id, nama: "Aljabar Linear" },
-    { id: uid("t_"), modulId: modul[0].id, nama: "Statistika Dasar" },
-    { id: uid("t_"), modulId: modul[1].id, nama: "Gerak dan Gaya" },
-    { id: uid("t_"), modulId: modul[1].id, nama: "Listrik Dinamis" },
-    { id: uid("t_"), modulId: modul[2].id, nama: "Sel dan Metabolisme" },
-    { id: uid("t_"), modulId: modul[2].id, nama: "Ekosistem" },
+    { id: uid("t_"), modulId: modul[0].id, nama: "HTML & CSS Dasar" },
+    { id: uid("t_"), modulId: modul[0].id, nama: "React dan State Management" },
+    { id: uid("t_"), modulId: modul[1].id, nama: "Desain Skema Relasional" },
+    { id: uid("t_"), modulId: modul[1].id, nama: "Query SQL Lanjut" },
+    { id: uid("t_"), modulId: modul[2].id, nama: "Struktur Data Pohon" },
+    { id: uid("t_"), modulId: modul[2].id, nama: "Kompleksitas Waktu (Big O)" },
   ];
 
   const users = [admin, operator];
@@ -191,11 +191,11 @@ export async function createSeedDataset({ uid, now, hashPassword }) {
     users.push({
       id: uid("u_"),
       username,
-      passwordHash: await hashPassword("guru123"),
+      passwordHash: await hashPassword("dosen123"),
       namaLengkap,
       role: "operator",
       allowedTopikIds: [],
-      detail: `${schoolName} · Guru mapel`,
+      detail: `${schoolName} · Dosen Pengampu`,
       aktif: true,
       createdAt: ts + users.length,
     });
@@ -209,16 +209,16 @@ export async function createSeedDataset({ uid, now, hashPassword }) {
       role: "peserta",
       allowedTopikIds: [],
       groupId,
-      detail: `${schoolName} · Peserta aktif`,
+      detail: `${schoolName} · Mahasiswa aktif`,
       aktif: true,
       createdAt: ts + users.length,
     });
   }
 
-  const restrictedTeacher = users.find((item) => item.username === "guru_fisika");
+  const restrictedTeacher = users.find((item) => item.username === "dosen_db");
   if (restrictedTeacher) {
     restrictedTeacher.allowedTopikIds = [topik[2].id, topik[3].id];
-    restrictedTeacher.detail = `${schoolName} · Guru Fisika (akses topik terbatas)`;
+    restrictedTeacher.detail = `${schoolName} · Dosen Basis Data (akses topik terbatas)`;
   }
 
   const soalBlueprints = [
@@ -266,8 +266,8 @@ export async function createSeedDataset({ uid, now, hashPassword }) {
   const ujian = [
     {
       id: uid("ex_"),
-      nama: "PTS Matematika Kelas X",
-      deskripsi: "<p>Penilaian Tengah Semester Matematika kelas X. Kerjakan teliti dan manfaatkan waktu dengan baik.</p>",
+      nama: "Ujian Akhir Semester Pemrograman Web",
+      deskripsi: "<p>Ujian Akhir Semester untuk mata kuliah Pemrograman Web. Kerjakan dengan teliti.</p>",
       durasiMenit: 45,
       poinBenar: 10,
       poinSalah: 0,
@@ -291,8 +291,8 @@ export async function createSeedDataset({ uid, now, hashPassword }) {
     },
     {
       id: uid("ex_"),
-      nama: "Tryout Fisika Dasar XI",
-      deskripsi: "<p>Tryout mandiri Fisika Dasar untuk latihan sebelum PAS.</p>",
+      nama: "Ujian Tengah Semester Basis Data",
+      deskripsi: "<p>Ujian Tengah Semester mata kuliah Basis Data Relasional.</p>",
       durasiMenit: 40,
       poinBenar: 5,
       poinSalah: -1,
@@ -316,8 +316,8 @@ export async function createSeedDataset({ uid, now, hashPassword }) {
     },
     {
       id: uid("ex_"),
-      nama: "Asesmen Biologi Akhir Semester",
-      deskripsi: "<p>Asesmen akhir semester Biologi dengan kombinasi pilihan ganda dan essay.</p>",
+      nama: "Ujian Komprehensif Algoritma",
+      deskripsi: "<p>Asesmen akhir mata kuliah Algoritma dan Struktur Data.</p>",
       durasiMenit: 50,
       poinBenar: 10,
       poinSalah: 0,
@@ -342,11 +342,11 @@ export async function createSeedDataset({ uid, now, hashPassword }) {
   ];
 
   const token = [
-    { id: uid("tk_"), ujianId: ujian[0].id, kode: "MTK-X-01", dipakaiOleh: peserta[0].id, dipakaiAt: ts - parseDurationMinutes(70) },
-    { id: uid("tk_"), ujianId: ujian[0].id, kode: "MTK-X-02" },
-    { id: uid("tk_"), ujianId: ujian[0].id, kode: "MTK-X-03" },
-    { id: uid("tk_"), ujianId: ujian[2].id, kode: "BIO-AS-01", dipakaiOleh: peserta[4].id, dipakaiAt: ts - parseDurationMinutes(120) },
-    { id: uid("tk_"), ujianId: ujian[2].id, kode: "BIO-AS-02" },
+    { id: uid("tk_"), ujianId: ujian[0].id, kode: "UAS-WEB-01", dipakaiOleh: peserta[0].id, dipakaiAt: ts - parseDurationMinutes(70) },
+    { id: uid("tk_"), ujianId: ujian[0].id, kode: "UAS-WEB-02" },
+    { id: uid("tk_"), ujianId: ujian[0].id, kode: "UAS-WEB-03" },
+    { id: uid("tk_"), ujianId: ujian[2].id, kode: "KOMP-ALG-01", dipakaiOleh: peserta[4].id, dipakaiAt: ts - parseDurationMinutes(120) },
+    { id: uid("tk_"), ujianId: ujian[2].id, kode: "KOMP-ALG-02" },
   ];
 
   const soalByTopik = Object.fromEntries(topik.map((item) => [item.id, soal.filter((entry) => entry.topikId === item.id)]));
@@ -494,9 +494,9 @@ export async function createSeedDataset({ uid, now, hashPassword }) {
   );
 
   const config = {
-    appName: "CBT-MAN Demo Sekolah",
-    appDeskripsi: "Simulasi CBT sekolah dengan data dummy realistis untuk preview lokal.",
-    pesanLogin: "Selamat datang di portal ujian SMA Nusantara Cendekia. Gunakan akun demo sesuai peran untuk mencoba alur sistem.",
+    appName: "CBT-MAN Demo Kampus",
+    appDeskripsi: "Simulasi CBT Kampus dengan data dummy realistis untuk preview lokal.",
+    pesanLogin: "Selamat datang di portal ujian Universitas Teknologi Nusantara. Gunakan akun demo sesuai peran untuk mencoba alur sistem.",
     mobileLock: false,
     multiDevice: false,
     roleAccess: DEFAULT_ROLE_ACCESS,

@@ -1,4 +1,4 @@
-# CBT-MAN
+# CBT-UNIVERSITAS
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-active-2ea44f)

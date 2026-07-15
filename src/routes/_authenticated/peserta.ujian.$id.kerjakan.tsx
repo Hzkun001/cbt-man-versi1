@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { RichView } from "@/components/cbt/RichEditor";
 import { AudioPlayer } from "@/components/cbt/AudioPlayer";
 import { cn } from "@/lib/utils";
-import { Flag, Clock } from "lucide-react";
+import { Flag, Clock, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/peserta/ujian/$id/kerjakan")({
   loader: async () => {
@@ -41,6 +41,7 @@ function Kerjakan() {
   );
   const [sesi, setSesi] = useState<SesiUjian | null>(initSesi ?? null);
   const [idx, setIdx] = useState(0);
+  const [cheatWarning, setCheatWarning] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const submittingRef = useRef(false);
   const sesiRef = useRef<SesiUjian | null>(initSesi ?? null);
@@ -100,6 +101,7 @@ function Kerjakan() {
         const next = { ...sesiRef.current, pelanggaran: sesiRef.current.pelanggaran + 1 };
         setSesi(next);
         persistSesi(next);
+        setCheatWarning(next.pelanggaran);
         if (next.pelanggaran > 0 && !submittingRef.current) {
           const activeUjian = ujianRepo.byId(id);
           if (
@@ -382,6 +384,31 @@ function Kerjakan() {
           </CardContent>
         </Card>
       </div>
+
+      {cheatWarning > 0 && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-red-950/90 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl max-w-md w-full shadow-2xl text-center border-4 border-red-500 animate-in zoom-in-95 duration-300">
+            <AlertTriangle className="w-24 h-24 text-red-500 mx-auto mb-6 animate-bounce" />
+            <h2 className="text-3xl font-extrabold text-red-600 dark:text-red-400 mb-3 tracking-tight">
+              PELANGGARAN TATA TERTIB!
+            </h2>
+            <p className="text-slate-700 dark:text-slate-300 mb-8 text-lg leading-relaxed font-medium">
+              Sistem mendeteksi Anda keluar dari halaman ujian atau berpindah tab/aplikasi. 
+              <br/><br/>
+              <span className="font-bold text-red-600">Ini adalah pelanggaran ke-{cheatWarning}.</span> 
+              <br/>
+              Ujian akan dihentikan otomatis dan mendapat nilai 0 jika Anda terus melanggar.
+            </p>
+            <Button 
+              variant="destructive" 
+              className="w-full font-bold text-lg h-14 shadow-lg hover:bg-red-600"
+              onClick={() => setCheatWarning(0)}
+            >
+              SAYA MENGERTI, KEMBALI KE UJIAN
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

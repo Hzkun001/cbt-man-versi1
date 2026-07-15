@@ -60,11 +60,13 @@ model User {
 /// Sesi login server-side. `id` = token opaque 256-bit (randomBytes hex),
 /// disimpan di cookie httpOnly. Dihapus saat logout/expiry/deaktivasi-revoke.
 model Session {
-  id        String   @id
-  userId    String
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-  user      User     @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id
+  userId          String
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+  userAgent       String?
+  deviceFingerprint String?
+  user            User     @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -125,6 +127,7 @@ model Ujian {
   fullscreenWajib  Boolean      @default(true)
   maxPindahTab     Int          @default(3)
   blokirShortcut   Boolean      @default(true)
+  mode             String       @default("online") // "online" | "offline"
   createdBy        String
   createdAt        BigInt
   creator          User         @relation("UjianCreator", fields: [createdBy], references: [id])
@@ -176,4 +179,19 @@ model AppConfig {
   mobileLock   Boolean @default(false)
   multiDevice  Boolean @default(false)
   roleAccess   String  @default("{}")
+}
+
+model AuditLog {
+  id        String   @id
+  userId    String
+  userRole  String
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
 }

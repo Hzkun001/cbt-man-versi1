@@ -1,11 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { sesiRepo, ujianRepo, usersRepo, soalRepo } from "@/lib/cbt/repos";
+import { sesiRepo, ujianRepo, soalRepo, mataKuliahRepo } from "@/lib/cbt/repos";
 import { useAuthStore } from "@/lib/cbt/auth-store";
 import { visibleUjians } from "@/lib/cbt/access";
+import { FileSignature, Calendar, BookOpen, ChevronRight, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/evaluasi")({
   component: EvaluasiList,
 });
+
+function formatDate(ts?: number) {
+  if (!ts) return "No date set";
+  return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(ts));
+}
 
 function EvaluasiList() {
   const user = useAuthStore((s) => s.user);
@@ -13,9 +19,10 @@ function EvaluasiList() {
   const sesis = sesiRepo.all().filter((s) => s.status === "selesai" && visibleIds.has(s.ujianId));
   const ujians = ujianRepo.all();
   const soals = soalRepo.all();
+  const mks = mataKuliahRepo.all();
   const soalSet = new Set(soals.filter((s) => s.tipe === "essay").map((s) => s.id));
 
-  const ujianMap = new Map<string, { ujian: any, totalSesi: number, belumSesi: number, totalEssay: number, belumEssay: number }>();
+  const ujianMap = new Map<string, { ujian: any, mk: any, totalSesi: number, belumSesi: number, totalEssay: number, belumEssay: number }>();
 
   sesis.forEach(s => {
     const essays = s.jawaban.filter((j) => soalSet.has(j.soalId));
@@ -26,7 +33,8 @@ function EvaluasiList() {
     if (!ujianMap.has(s.ujianId)) {
       const u = ujians.find(x => x.id === s.ujianId);
       if (!u) return;
-      ujianMap.set(s.ujianId, { ujian: u, totalSesi: 0, belumSesi: 0, totalEssay: 0, belumEssay: 0 });
+      const mk = mks.find(m => m.id === u.mataKuliahId);
+      ujianMap.set(s.ujianId, { ujian: u, mk, totalSesi: 0, belumSesi: 0, totalEssay: 0, belumEssay: 0 });
     }
     
     const entry = ujianMap.get(s.ujianId)!;
@@ -40,54 +48,128 @@ function EvaluasiList() {
 
   const items = Array.from(ujianMap.values()).sort((a, b) => b.belumSesi - a.belumSesi);
   const totalBelumSesi = items.reduce((acc, curr) => acc + curr.belumSesi, 0);
+  const totalBelumEssay = items.reduce((acc, curr) => acc + curr.belumEssay, 0);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-10">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-zinc-100 tracking-tight">Manual Grading</h1>
-        <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
-          {totalBelumSesi > 0 
-            ? `${totalBelumSesi} submissions waiting for your review.` 
-            : "Inbox zero. All submissions have been graded."}
-        </p>
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10">
+      {/* Header & Quick Stats */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-zinc-100 tracking-tight">Manual Grading Inbox</h1>
+          <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1.5">
+            Evaluate student essay submissions and assign manual scores.
+          </p>
+        </div>
+        
+        {totalBelumEssay > 0 && (
+          <div className="flex items-center gap-6 bg-slate-50 dark:bg-zinc-900/50 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-zinc-800">
+            <div>
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Pending Exams</div>
+              <div className="text-lg font-bold text-slate-900 dark:text-zinc-100 leading-tight">{items.filter(i => i.belumSesi > 0).length}</div>
+            </div>
+            <div className="w-px h-8 bg-slate-200 dark:bg-zinc-800"></div>
+            <div>
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Ungraded Essays</div>
+              <div className="text-lg font-bold text-amber-600 dark:text-amber-500 leading-tight">{totalBelumEssay}</div>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="border-t border-slate-200 dark:border-zinc-800">
+      {/* Data List */}
+      <div className="border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950 shadow-sm">
+        {/* Table Header */}
+        <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <div className="col-span-12 sm:col-span-5">Exam Reference</div>
+          <div className="hidden sm:block sm:col-span-2">Subject</div>
+          <div className="hidden sm:block sm:col-span-3">Completion Progress</div>
+          <div className="hidden sm:block sm:col-span-2 text-right">Status</div>
+        </div>
+
         {items.length === 0 ? (
-          <div className="py-20 text-center">
-            <span className="text-slate-400 dark:text-zinc-500">No pending grading tasks.</span>
+          <div className="py-24 text-center flex flex-col items-center">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500 mb-3 opacity-80" />
+            <span className="text-slate-900 dark:text-zinc-100 font-medium">Inbox Zero</span>
+            <span className="text-sm text-slate-500 dark:text-zinc-400 mt-1">All submissions have been graded.</span>
           </div>
         ) : (
-          <div className="flex flex-col">
-            {items.map(({ ujian, totalSesi, belumSesi, totalEssay }) => {
+          <div className="flex flex-col divide-y divide-slate-100 dark:divide-zinc-800/60">
+            {items.map(({ ujian, mk, totalSesi, belumSesi, totalEssay, belumEssay }) => {
               const isWarning = belumSesi > 0;
+              const gradedEssay = totalEssay - belumEssay;
+              const progressPct = totalEssay > 0 ? (gradedEssay / totalEssay) * 100 : 100;
+
               return (
                 <Link 
                   key={ujian.id} 
                   to="/admin/evaluasi/ujian/$id" 
                   params={{ id: ujian.id }} 
-                  className="group flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-900/30 transition-colors -mx-4 px-4 rounded-md"
+                  className="group block hover:bg-slate-50 dark:hover:bg-zinc-900/30 transition-colors"
                 >
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-medium text-sm text-slate-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                      {ujian.nama}
-                    </span>
-                    <span className="text-xs text-slate-500 dark:text-zinc-500 mt-0.5">
-                      {totalSesi} submissions • {totalEssay} essays total
-                    </span>
-                  </div>
+                  <div className="grid grid-cols-12 gap-4 px-6 py-4 items-center">
+                    
+                    {/* Col 1: Exam Info */}
+                    <div className="col-span-12 sm:col-span-5 flex items-start gap-3">
+                      <div className="mt-0.5">
+                        <FileSignature className="h-4 w-4 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-sm text-slate-900 dark:text-zinc-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                          {ujian.nama}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 font-mono">
+                          <span>{ujian.id.substring(0, 8)}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1 font-sans">
+                            <Calendar className="h-3 w-3" /> {formatDate(ujian.beginAt)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="flex items-center gap-3 shrink-0 sm:ml-4 mt-2 sm:mt-0">
-                    {isWarning ? (
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-500">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-                        {belumSesi} pending
+                    {/* Col 2: Subject Context */}
+                    <div className="hidden sm:flex sm:col-span-2 items-center">
+                      {mk ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 dark:bg-zinc-800 text-[11px] font-medium text-slate-600 dark:text-zinc-400 truncate max-w-full">
+                          <BookOpen className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{mk.nama}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 italic">No subject</span>
+                      )}
+                    </div>
+
+                    {/* Col 3: Grading Progress */}
+                    <div className="hidden sm:flex sm:col-span-3 flex-col justify-center">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-zinc-400 mb-1.5">
+                        <span>{gradedEssay} / {totalEssay} graded</span>
+                        <span>{Math.round(progressPct)}%</span>
                       </div>
-                    ) : (
-                      <div className="text-xs text-slate-400 dark:text-zinc-600">
-                        Cleared
+                      <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full transition-all duration-500 ${progressPct === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`} 
+                          style={{ width: `${progressPct}%` }} 
+                        />
                       </div>
-                    )}
+                    </div>
+
+                    {/* Col 4: Status & Action */}
+                    <div className="hidden sm:flex sm:col-span-2 items-center justify-end gap-4">
+                      {isWarning ? (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-900/20 text-[11px] font-semibold text-amber-700 dark:text-amber-500 border border-amber-200/50 dark:border-amber-800/50">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                          </span>
+                          {belumSesi} Needs Action
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-500">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Cleared
+                        </div>
+                      )}
+                      <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors shrink-0" />
+                    </div>
                   </div>
                 </Link>
               );

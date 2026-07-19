@@ -78,19 +78,6 @@ function OnlinePage() {
               Monitoring real-time aktivitas peserta, pelacakan progres, dan deteksi anomali.
             </p>
           </div>
-          
-          {/* Quick Stats in Header */}
-          <div className="hidden sm:flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-             <div className="flex items-center gap-2">
-               <Activity className="h-4 w-4 text-emerald-500" />
-               <span className="font-semibold text-slate-900 dark:text-white">{sesis.length}</span> Aktif
-             </div>
-             <div className="w-px h-4 bg-slate-300 dark:bg-slate-700"></div>
-             <div className="flex items-center gap-2">
-               <AlertTriangle className="h-4 w-4 text-rose-500" />
-               <span className="font-semibold text-rose-600 dark:text-rose-400">{totalPelanggaran}</span> Insiden
-             </div>
-          </div>
         </div>
       </div>
 

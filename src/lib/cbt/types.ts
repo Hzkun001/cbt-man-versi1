@@ -223,6 +223,7 @@ export const NAV_KEYS = [
 	"leaderboard",
 	"pengaturan",
 	"tools",
+	"panduan",
 ] as const;
 export type NavKey = (typeof NAV_KEYS)[number];
 

@@ -32,6 +32,7 @@ import {
   Menu,
   X,
   Sparkles,
+  BookOpenCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +50,7 @@ const ADMIN_ROUTE_RULES = {
   leaderboard: { key: "leaderboard", adminOnly: false, paths: ["/admin/leaderboard"] },
   pengaturan: { key: "pengaturan", adminOnly: true, paths: ["/admin/pengaturan"] },
   tools: { key: "tools", adminOnly: true, paths: ["/admin/tools"] },
+  panduan: { key: "panduan", adminOnly: false, paths: ["/admin/panduan"] },
 } satisfies Record<string, { key: NavKey; adminOnly: boolean; paths: string[] }>;
 
 type AdminRouteRule = (typeof ADMIN_ROUTE_RULES)[keyof typeof ADMIN_ROUTE_RULES];
@@ -107,6 +109,12 @@ const navGroups: NavGroup[] = [
     items: [
       { to: "/admin/pengaturan", label: "Pengaturan", icon: Settings },
       { to: "/admin/tools", label: "Backup & Tools", icon: Wrench },
+    ]
+  },
+  {
+    label: "Bantuan",
+    items: [
+      { to: "/admin/panduan", label: "Panduan", icon: BookOpenCheck },
     ]
   }
 ];

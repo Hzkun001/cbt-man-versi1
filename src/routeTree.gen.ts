@@ -22,6 +22,7 @@ import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminUjianRouteImport } from './routes/_authenticated/admin.ujian'
 import { Route as AuthenticatedAdminToolsRouteImport } from './routes/_authenticated/admin.tools'
 import { Route as AuthenticatedAdminPengaturanRouteImport } from './routes/_authenticated/admin.pengaturan'
+import { Route as AuthenticatedAdminPanduanRouteImport } from './routes/_authenticated/admin.panduan'
 import { Route as AuthenticatedAdminModulRouteImport } from './routes/_authenticated/admin.modul'
 import { Route as AuthenticatedAdminFilesRouteImport } from './routes/_authenticated/admin.files'
 import { Route as AuthenticatedAdminEvaluasiRouteImport } from './routes/_authenticated/admin.evaluasi'
@@ -121,6 +122,12 @@ const AuthenticatedAdminPengaturanRoute =
   AuthenticatedAdminPengaturanRouteImport.update({
     id: '/pengaturan',
     path: '/pengaturan',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPanduanRoute =
+  AuthenticatedAdminPanduanRouteImport.update({
+    id: '/panduan',
+    path: '/panduan',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminModulRoute = AuthenticatedAdminModulRouteImport.update({
@@ -336,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/admin/evaluasi': typeof AuthenticatedAdminEvaluasiRouteWithChildren
   '/admin/files': typeof AuthenticatedAdminFilesRoute
   '/admin/modul': typeof AuthenticatedAdminModulRouteWithChildren
+  '/admin/panduan': typeof AuthenticatedAdminPanduanRoute
   '/admin/pengaturan': typeof AuthenticatedAdminPengaturanRoute
   '/admin/tools': typeof AuthenticatedAdminToolsRoute
   '/admin/ujian': typeof AuthenticatedAdminUjianRouteWithChildren
@@ -381,6 +389,7 @@ export interface FileRoutesByTo {
   '/admin/evaluasi': typeof AuthenticatedAdminEvaluasiRouteWithChildren
   '/admin/files': typeof AuthenticatedAdminFilesRoute
   '/admin/modul': typeof AuthenticatedAdminModulRouteWithChildren
+  '/admin/panduan': typeof AuthenticatedAdminPanduanRoute
   '/admin/pengaturan': typeof AuthenticatedAdminPengaturanRoute
   '/admin/tools': typeof AuthenticatedAdminToolsRoute
   '/admin/ujian': typeof AuthenticatedAdminUjianRouteWithChildren
@@ -431,6 +440,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/evaluasi': typeof AuthenticatedAdminEvaluasiRouteWithChildren
   '/_authenticated/admin/files': typeof AuthenticatedAdminFilesRoute
   '/_authenticated/admin/modul': typeof AuthenticatedAdminModulRouteWithChildren
+  '/_authenticated/admin/panduan': typeof AuthenticatedAdminPanduanRoute
   '/_authenticated/admin/pengaturan': typeof AuthenticatedAdminPengaturanRoute
   '/_authenticated/admin/tools': typeof AuthenticatedAdminToolsRoute
   '/_authenticated/admin/ujian': typeof AuthenticatedAdminUjianRouteWithChildren
@@ -481,6 +491,7 @@ export interface FileRouteTypes {
     | '/admin/evaluasi'
     | '/admin/files'
     | '/admin/modul'
+    | '/admin/panduan'
     | '/admin/pengaturan'
     | '/admin/tools'
     | '/admin/ujian'
@@ -526,6 +537,7 @@ export interface FileRouteTypes {
     | '/admin/evaluasi'
     | '/admin/files'
     | '/admin/modul'
+    | '/admin/panduan'
     | '/admin/pengaturan'
     | '/admin/tools'
     | '/admin/ujian'
@@ -575,6 +587,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/evaluasi'
     | '/_authenticated/admin/files'
     | '/_authenticated/admin/modul'
+    | '/_authenticated/admin/panduan'
     | '/_authenticated/admin/pengaturan'
     | '/_authenticated/admin/tools'
     | '/_authenticated/admin/ujian'
@@ -713,6 +726,13 @@ declare module '@tanstack/react-router' {
       path: '/pengaturan'
       fullPath: '/admin/pengaturan'
       preLoaderRoute: typeof AuthenticatedAdminPengaturanRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/panduan': {
+      id: '/_authenticated/admin/panduan'
+      path: '/panduan'
+      fullPath: '/admin/panduan'
+      preLoaderRoute: typeof AuthenticatedAdminPanduanRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/modul': {
@@ -1073,6 +1093,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminEvaluasiRoute: typeof AuthenticatedAdminEvaluasiRouteWithChildren
   AuthenticatedAdminFilesRoute: typeof AuthenticatedAdminFilesRoute
   AuthenticatedAdminModulRoute: typeof AuthenticatedAdminModulRouteWithChildren
+  AuthenticatedAdminPanduanRoute: typeof AuthenticatedAdminPanduanRoute
   AuthenticatedAdminPengaturanRoute: typeof AuthenticatedAdminPengaturanRoute
   AuthenticatedAdminToolsRoute: typeof AuthenticatedAdminToolsRoute
   AuthenticatedAdminUjianRoute: typeof AuthenticatedAdminUjianRouteWithChildren
@@ -1096,6 +1117,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminEvaluasiRoute: AuthenticatedAdminEvaluasiRouteWithChildren,
   AuthenticatedAdminFilesRoute: AuthenticatedAdminFilesRoute,
   AuthenticatedAdminModulRoute: AuthenticatedAdminModulRouteWithChildren,
+  AuthenticatedAdminPanduanRoute: AuthenticatedAdminPanduanRoute,
   AuthenticatedAdminPengaturanRoute: AuthenticatedAdminPengaturanRoute,
   AuthenticatedAdminToolsRoute: AuthenticatedAdminToolsRoute,
   AuthenticatedAdminUjianRoute: AuthenticatedAdminUjianRouteWithChildren,

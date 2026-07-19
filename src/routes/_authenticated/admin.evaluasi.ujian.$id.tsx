@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams, useNavigate } from "@tanstack/react-router";
 import { sesiRepo, ujianRepo, usersRepo, soalRepo } from "@/lib/cbt/repos";
 import { useAuthStore } from "@/lib/cbt/auth-store";
 import { visibleUjians } from "@/lib/cbt/access";
@@ -10,6 +10,7 @@ export const Route = createFileRoute("/_authenticated/admin/evaluasi/ujian/$id")
 function EvaluasiUjianList() {
   const { id } = useParams({ from: "/_authenticated/admin/evaluasi/ujian/$id" });
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
   const visibleIds = new Set(visibleUjians(user).map((u) => u.id));
   
   if (!visibleIds.has(id)) {
@@ -66,11 +67,18 @@ function EvaluasiUjianList() {
               const isWarning = belum > 0;
 
               return (
-                <Link
+                <div
                   key={sesi.id}
-                  to="/admin/evaluasi/$id"
-                  params={{ id: sesi.id }}
-                  className="group flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-900/30 transition-colors -mx-4 px-4 rounded-md"
+                  onClick={() => navigate({ to: '/admin/evaluasi/$id', params: { id: sesi.id } })}
+                  className="group flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-900/30 transition-colors -mx-4 px-4 rounded-md cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate({ to: '/admin/evaluasi/$id', params: { id: sesi.id } });
+                    }
+                  }}
                 >
                   <div className="flex flex-col min-w-0">
                     <span className="font-medium text-sm text-slate-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
@@ -96,7 +104,7 @@ function EvaluasiUjianList() {
                       </div>
                     )}
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

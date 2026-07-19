@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { sesiRepo, ujianRepo, soalRepo, mataKuliahRepo } from "@/lib/cbt/repos";
 import { useAuthStore } from "@/lib/cbt/auth-store";
 import { visibleUjians } from "@/lib/cbt/access";
@@ -15,6 +15,7 @@ function formatDate(ts?: number) {
 
 function EvaluasiList() {
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
   const visibleIds = new Set(visibleUjians(user).map((u) => u.id));
   const sesis = sesiRepo.all().filter((s) => s.status === "selesai" && visibleIds.has(s.ujianId));
   const ujians = ujianRepo.all();
@@ -100,11 +101,18 @@ function EvaluasiList() {
               const progressPct = totalEssay > 0 ? (gradedEssay / totalEssay) * 100 : 100;
 
               return (
-                <Link 
+                <div 
                   key={ujian.id} 
-                  to="/admin/evaluasi/ujian/$id" 
-                  params={{ id: ujian.id }} 
-                  className="group block hover:bg-slate-50 dark:hover:bg-zinc-900/30 transition-colors"
+                  onClick={() => navigate({ to: '/admin/evaluasi/ujian/$id', params: { id: ujian.id } })}
+                  className="group block hover:bg-slate-50 dark:hover:bg-zinc-900/30 transition-colors cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate({ to: '/admin/evaluasi/ujian/$id', params: { id: ujian.id } });
+                    }
+                  }}
                 >
                   <div className="grid grid-cols-12 gap-4 px-6 py-4 items-center">
                     
@@ -171,7 +179,7 @@ function EvaluasiList() {
                       <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors shrink-0" />
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

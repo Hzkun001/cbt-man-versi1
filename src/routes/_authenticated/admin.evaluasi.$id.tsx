@@ -5,7 +5,7 @@ import { useAuthStore } from "@/lib/cbt/auth-store";
 import { recomputeSkor } from "@/lib/cbt/exam";
 import { RichView } from "@/components/cbt/RichEditor";
 import { toast } from "sonner";
-import { CheckCircle2, AlertTriangle } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Save } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/evaluasi/$id")({
   loader: async () => {
@@ -23,11 +23,11 @@ function EvaluasiSesi() {
   const me = useAuthStore((s) => s.user);
   const [sesi, setSesi] = useState(sesiRepo.byId(id));
   
-  if (!me) return <div className="py-20 text-center text-sm text-slate-500">Akses Ditolak</div>;
-  if (!sesi) return <div className="py-20 text-center text-sm text-slate-500">Sesi tidak ditemukan</div>;
+  if (!me) return <div className="py-20 text-center text-sm font-bold text-slate-500">Akses Ditolak</div>;
+  if (!sesi) return <div className="py-20 text-center text-sm font-bold text-slate-500">Sesi tidak ditemukan</div>;
   
   const ujian = ujianRepo.byId(sesi.ujianId);
-  if (!ujian) return <div className="py-20 text-center text-sm text-slate-500">Ujian tidak ditemukan</div>;
+  if (!ujian) return <div className="py-20 text-center text-sm font-bold text-slate-500">Ujian tidak ditemukan</div>;
   
   const peserta = usersRepo.byId(sesi.pesertaId);
   const items = sesi.jawaban
@@ -64,87 +64,104 @@ function EvaluasiSesi() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 pb-32">
-      <div className="mb-6">
+      <div className="mb-6 bg-white dark:bg-slate-950 p-6 sm:p-8 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-sleek">
         <Link 
           to="/admin/evaluasi" 
-          className="text-sm font-medium text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors mb-6 inline-block"
+          className="text-sm font-bold text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors mb-6 inline-flex items-center gap-1"
         >
           ← Back to Inbox
         </Link>
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100 tracking-tight">
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
           {peserta?.namaLengkap || "Anonim"}
         </h1>
-        <p className="text-sm text-slate-500 dark:text-zinc-400 mt-2">
-          {ujian.nama} • {items.length} essays
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2">
+          {ujian.nama} • <span className="font-bold text-slate-700 dark:text-slate-300">{items.length}</span> essays to grade
         </p>
       </div>
 
-      <div className="space-y-12">
+      <div className="space-y-6">
         {items.map(({ j, idx, soal }) => {
           const isGraded = typeof j.skor === 'number';
           
           if (!soal) return (
-            <div key={idx} className="flex items-center gap-2 text-rose-500 text-sm">
+            <div key={idx} className="flex items-center gap-2 text-rose-500 text-sm font-bold p-4 bg-rose-50 dark:bg-rose-950/30 rounded-xl">
               <AlertTriangle className="h-4 w-4" /> Soal #{idx + 1} tidak ditemukan.
             </div>
           );
 
           return (
-            <div key={idx} className="pb-12 border-b border-slate-200 dark:border-zinc-800 last:border-0">
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-sm font-medium text-slate-400 dark:text-zinc-500">
+            <div key={idx} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-sleek transition-shadow duration-300">
+              
+              {/* Question Header */}
+              <div className="flex items-center justify-between px-6 py-4 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   Question {idx + 1}
                 </span>
                 {isGraded ? (
-                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-500 flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-500 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-md border border-emerald-100 dark:border-emerald-800/30">
                     <CheckCircle2 className="h-3.5 w-3.5" /> Graded
                   </span>
                 ) : (
-                  <span className="text-xs font-medium text-amber-600 dark:text-amber-500 flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Pending
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-500 flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-md border border-amber-200/50 dark:border-amber-800/50">
+                    <span className="relative flex h-1.5 w-1.5 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                    </span>
+                    Pending
                   </span>
                 )}
               </div>
               
-              <div className="prose prose-sm dark:prose-invert max-w-none text-slate-900 dark:text-zinc-100 mb-8">
-                <RichView html={soal.detail} />
-              </div>
-              
-              <div className="pl-4 border-l-2 border-indigo-100 dark:border-indigo-900/30 mb-8">
-                <span className="text-[10px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2 block">
-                  Student's Answer
-                </span>
-                <div className="text-base text-slate-800 dark:text-zinc-200 whitespace-pre-wrap font-serif leading-relaxed">
-                  {j.jawabanEssay ? j.jawabanEssay : <span className="text-slate-400 italic">No answer provided.</span>}
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center bg-slate-50/50 dark:bg-zinc-900/20 p-4 rounded-md">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-slate-500">Score</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={ujian.poinBenar}
-                    value={j.skor ?? ""}
-                    onChange={(e) => setSkor(idx, e.target.value === "" ? undefined : Number(e.target.value), j.catatanGrader ?? "")}
-                    placeholder="0"
-                    className="w-16 h-8 bg-transparent border-b border-slate-300 dark:border-zinc-700 text-base font-semibold text-slate-900 dark:text-zinc-100 text-center focus:outline-none focus:border-indigo-500 transition-colors"
-                  />
-                  <span className="text-sm text-slate-500">/ {ujian.poinBenar} pts</span>
+              <div className="p-6">
+                {/* Question Content */}
+                <div className="prose prose-sm dark:prose-invert max-w-none text-slate-900 dark:text-slate-100 mb-8">
+                  <RichView html={soal.detail} />
                 </div>
                 
-                <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-zinc-800"></div>
+                {/* Student Answer */}
+                <div className="p-5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200/50 dark:border-slate-800/50 mb-6">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 block">
+                    Student's Answer
+                  </span>
+                  <div className="text-[15px] text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-serif leading-relaxed">
+                    {j.jawabanEssay ? j.jawabanEssay : <span className="text-slate-400 italic">No answer provided.</span>}
+                  </div>
+                </div>
 
-                <div className="flex-1 w-full flex items-center gap-3">
-                  <span className="text-sm font-medium text-slate-500">Note</span>
-                  <input
-                    type="text"
-                    value={j.catatanGrader ?? ""}
-                    onChange={(e) => setSkor(idx, j.skor, e.target.value)}
-                    placeholder="Feedback (optional)..."
-                    className="flex-1 w-full h-8 bg-transparent border-b border-slate-300 dark:border-zinc-700 text-sm text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors"
-                  />
+                {/* Grading Controls */}
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-inner">
+                  
+                  {/* Score Input */}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Score</span>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={0}
+                        max={ujian.poinBenar}
+                        value={j.skor ?? ""}
+                        onChange={(e) => setSkor(idx, e.target.value === "" ? undefined : Number(e.target.value), j.catatanGrader ?? "")}
+                        placeholder="0"
+                        className="w-20 h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-900 dark:text-slate-100 text-center pr-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                      />
+                    </div>
+                    <span className="text-sm font-bold text-slate-500">/ {ujian.poinBenar}</span>
+                  </div>
+                  
+                  <div className="hidden sm:block w-px h-8 bg-slate-200 dark:bg-slate-800 mx-2"></div>
+
+                  {/* Note Input */}
+                  <div className="flex-1 w-full flex flex-col sm:flex-row sm:items-center gap-3">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Feedback</span>
+                    <input
+                      type="text"
+                      value={j.catatanGrader ?? ""}
+                      onChange={(e) => setSkor(idx, j.skor, e.target.value)}
+                      placeholder="Add an optional note..."
+                      className="flex-1 w-full h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                    />
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -152,20 +169,26 @@ function EvaluasiSesi() {
         })}
       </div>
 
+      {/* Floating Bottom Bar (Tactile & Springy) */}
       <div className="fixed bottom-6 left-0 right-0 pointer-events-none flex justify-center z-50">
-        <div className="pointer-events-auto flex items-center gap-6 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-3 rounded-full shadow-2xl border border-white/10 dark:border-black/10">
-          <div className="text-sm font-medium">
-            {totalUngraded === 0 ? "All graded" : `${totalUngraded} remaining`}
+        <div className="pointer-events-auto flex items-center gap-5 sm:gap-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 sm:px-8 py-3.5 rounded-full shadow-popover-sleek border border-white/10 dark:border-black/5 backdrop-blur-lg">
+          
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+            <div className="text-[11px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500">
+              {totalUngraded === 0 ? "All graded" : `${totalUngraded} remaining`}
+            </div>
+            <div className="hidden sm:block w-1.5 h-1.5 rounded-full bg-slate-700 dark:bg-slate-300"></div>
+            <div className="text-sm">
+              <span className="text-slate-400 dark:text-slate-500">Total:</span> <span className="font-bold text-lg leading-none">{sesi.skorTotal ?? 0}</span> <span className="text-slate-400 dark:text-slate-500 font-medium">/ {sesi.maxSkor ?? 0}</span>
+            </div>
           </div>
-          <div className="w-px h-4 bg-slate-700 dark:bg-zinc-300"></div>
-          <div className="text-sm">
-            Total: <span className="font-bold">{sesi.skorTotal ?? 0}</span> <span className="text-slate-400 dark:text-zinc-500">/ {sesi.maxSkor ?? 0}</span>
-          </div>
+          
           <button 
             onClick={selesaikan}
-            className="ml-2 text-sm font-bold bg-indigo-500 dark:bg-indigo-600 text-white px-5 py-2 rounded-full hover:bg-indigo-400 dark:hover:bg-indigo-500 transition-colors"
+            className="flex items-center gap-2 text-sm font-bold bg-blue-600 text-white px-5 sm:px-6 py-2.5 rounded-full hover:bg-blue-500 active:bg-blue-700 shadow-md transition-colors"
           >
-            Submit Grades
+            <Save className="h-4 w-4" />
+            Submit
           </button>
         </div>
       </div>

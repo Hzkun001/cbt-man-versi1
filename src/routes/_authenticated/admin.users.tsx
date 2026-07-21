@@ -52,7 +52,7 @@ function UsersPage() {
         title="Pengguna Sistem"
         description="Kelola akses akun admin, admin jurusan, dan evaluator."
         action={
-          <Button onClick={() => { setEditing(null); setOpen(true); }} className="h-9">
+          <Button onClick={() => { setEditing(null); setOpen(true); }} size="sm" className="h-9">
             <Plus className="mr-2 h-4 w-4" /> Tambah Akun
           </Button>
         }
@@ -85,24 +85,24 @@ function UsersPage() {
           <table className="w-full text-sm">
             <thead className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-semibold">
               <tr>
-                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-left border-r border-slate-200 dark:border-slate-800">Username</th>
-                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-left border-r border-slate-200 dark:border-slate-800">Nama Lengkap</th>
-                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-center border-r border-slate-200 dark:border-slate-800">Peran</th>
-                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-center border-r border-slate-200 dark:border-slate-800">Status</th>
+                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-left">Username</th>
+                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-left">Nama Lengkap</th>
+                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-center">Peran</th>
+                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-center">Status</th>
                 <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {shown.map((u) => (
-                <tr key={u.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="p-4 font-medium text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800 text-left">{u.username}</td>
-                  <td className="p-4 text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 text-left">{u.namaLengkap}</td>
-                  <td className="p-4 text-center border-r border-slate-200 dark:border-slate-800">
+                <tr key={u.id} className="transition-colors border-t border-slate-100 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <td className="p-4 font-medium text-slate-900 dark:text-slate-100 text-left">{u.username}</td>
+                  <td className="p-4 text-slate-600 dark:text-slate-400 text-left">{u.namaLengkap}</td>
+                  <td className="p-4 text-center">
                     <span className="px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                       {u.role === "super_admin" ? "Super Admin" : u.role === "admin_prodi" ? "Admin Jurusan" : u.role === "evaluator" ? "Evaluator" : u.role}
                     </span>
                   </td>
-                  <td className="p-4 text-center border-r border-slate-200 dark:border-slate-800">
+                  <td className="p-4 text-center">
                     {u.aktif ? (
                       <span className="px-2 py-0.5 rounded text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Aktif</span>
                     ) : (

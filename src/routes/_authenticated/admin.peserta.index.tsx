@@ -88,7 +88,7 @@ function PesertaPage() {
         title="Akun Peserta"
         description="Kelola data mahasiswa, grup kelas, dan import akun dari Excel."
         action={
-          <div className="flex flex-wrap items-center gap-2">
+          <>
             <input id="file-upload" type="file" accept=".xlsx,.xls" hidden onChange={(e) => {
               const f = e.target.files?.[0]; if (f) importExcel(f); e.target.value = "";
             }} />
@@ -107,9 +107,9 @@ function PesertaPage() {
               </Button>
             </Link>
             <Button onClick={() => { setEditing(null); setOpen(true); }} size="sm" className="h-9">
-              <Plus className="mr-2 h-4 w-4" /> Tambah Peserta
+              <Plus className="mr-2 h-4 w-4" /> Tambah Akun
             </Button>
-          </div>
+          </>
         }
       />
 
@@ -122,7 +122,7 @@ function PesertaPage() {
           className="max-w-xs" 
         />
         <Select value={filterUnit} onValueChange={setFilterUnit}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Pilih Unit" />
           </SelectTrigger>
           <SelectContent>
@@ -138,24 +138,24 @@ function PesertaPage() {
           <table className="w-full text-sm">
             <thead className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-semibold">
               <tr>
-                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-left border-r border-slate-200 dark:border-slate-800">Username</th>
-                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-left border-r border-slate-200 dark:border-slate-800">Nama Lengkap</th>
-                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-center border-r border-slate-200 dark:border-slate-800">Grup / Kelas</th>
-                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-center border-r border-slate-200 dark:border-slate-800">Status</th>
+                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-left">Username</th>
+                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-left">Nama Lengkap</th>
+                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-center">Grup / Kelas</th>
+                <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-center">Status</th>
                 <th className="p-4 font-semibold text-slate-700 dark:text-slate-300 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {shown.map((p) => (
-                <tr key={p.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="p-4 font-medium text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800 text-left">{p.username}</td>
-                  <td className="p-4 text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 text-left">{p.namaLengkap}</td>
-                  <td className="p-4 text-center border-r border-slate-200 dark:border-slate-800">
+                <tr key={p.id} className="transition-colors border-t border-slate-100 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <td className="p-4 font-medium text-slate-900 dark:text-slate-100 text-left">{p.username}</td>
+                  <td className="p-4 text-slate-600 dark:text-slate-400 text-left">{p.namaLengkap}</td>
+                  <td className="p-4 text-center">
                     <span className="px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                       {units.find((g) => g.id === p.unitId)?.nama ?? "-"}
                     </span>
                   </td>
-                  <td className="p-4 text-center border-r border-slate-200 dark:border-slate-800">
+                  <td className="p-4 text-center">
                     {p.aktif ? (
                       <span className="px-2 py-0.5 rounded text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Aktif</span>
                     ) : (

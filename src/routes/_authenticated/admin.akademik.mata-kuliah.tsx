@@ -4,7 +4,7 @@ import { mataKuliahRepo, unitAkademikRepo, semesterRepo, tahunAkademikRepo } fro
 import { mutateMataKuliahServer } from "@/lib/server/akademik/functions";
 import { uid } from "@/lib/cbt/storage";
 import type { MataKuliah } from "@/lib/cbt/types";
-import { Card, CardContent } from "@/components/ui/card";
+import { AdminPageContent } from "@/components/cbt/AdminPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Pencil } from "lucide-react";
@@ -88,18 +88,18 @@ function MataKuliahPage() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Daftar Mata Kuliah</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Daftar Mata Kuliah</h2>
           <p className="text-sm text-slate-500">Kelola mata kuliah untuk penjadwalan ujian.</p>
         </div>
-        <Button onClick={handleAdd} size="sm" className="h-9 font-semibold shadow-sm">
+        <Button onClick={handleAdd} size="sm" className="h-9">
           <Plus className="mr-2 h-4 w-4" /> Tambah Mata Kuliah
         </Button>
       </div>
 
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 overflow-hidden">
+      <AdminPageContent className="p-0">
         <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/60">
           {items.map((item) => {
             const unit = unitList.find((p) => p.id === item.unitId);
@@ -123,11 +123,11 @@ function MataKuliahPage() {
                     <span className="flex items-center gap-1"><span className="text-slate-400">Semester:</span> <span className="font-medium text-slate-600 dark:text-slate-300">{semester?.nama ?? "-"} {ta ? `(${ta.nama})` : ""}</span></span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-900 dark:hover:text-white" onClick={() => handleEdit(item)}>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="h-8" onClick={() => handleEdit(item)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950" onClick={() => handleRemove(item.id)}>
+                  <Button variant="ghost" size="sm" className="h-8 text-destructive hover:bg-destructive/10" onClick={() => handleRemove(item.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -138,7 +138,7 @@ function MataKuliahPage() {
             <div className="p-8 text-center text-sm text-slate-400">Belum ada data mata kuliah.</div>
           )}
         </div>
-      </div>
+      </AdminPageContent>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

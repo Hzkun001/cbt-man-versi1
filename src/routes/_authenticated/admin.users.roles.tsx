@@ -4,6 +4,7 @@ import { configRepo, usersRepo, topikRepo, modulRepo } from "@/lib/cbt/repos";
 import { upsertUserServer } from "@/lib/server/users/functions";
 import { NAV_KEYS, type NavKey, type User } from "@/lib/cbt/types";
 import { Card, CardContent } from "@/components/ui/card";
+import { AdminPage, AdminPageHeader } from "@/components/cbt/AdminPage";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -72,19 +73,19 @@ function RolesPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-4">
+    <AdminPage>
       <div>
-        <Link to="/admin/users" className="text-sm text-muted-foreground hover:underline">
+        <Link to="/admin/users" className="text-sm text-slate-500 hover:underline">
           ← Pengguna
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">Hak Akses Role</h1>
-        <p className="text-sm text-muted-foreground">
-          Atur menu yang bisa diakses Admin Jurusan dan Evaluator, serta topik mana yang boleh mereka kelola.
-        </p>
       </div>
+      <AdminPageHeader
+        title="Hak Akses Role"
+        description="Atur menu yang bisa diakses Admin Jurusan dan Evaluator, serta topik mana yang boleh mereka kelola."
+      />
 
       <Card>
-        <CardContent className="space-y-3 p-4">
+        <CardContent className="space-y-3 p-6">
           <h3 className="font-medium">Menu yang bisa diakses Admin Jurusan</h3>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {NAV_KEYS.filter((k) => k !== "users" && k !== "pengaturan" && k !== "tools").map(
@@ -103,7 +104,7 @@ function RolesPage() {
       </Card>
 
       <Card>
-        <CardContent className="space-y-3 p-4">
+        <CardContent className="space-y-3 p-6">
           <h3 className="font-medium">Menu yang bisa diakses Evaluator</h3>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {NAV_KEYS.filter((k) => k !== "users" && k !== "pengaturan" && k !== "tools").map(
@@ -122,16 +123,16 @@ function RolesPage() {
       </Card>
 
       <Card>
-        <CardContent className="space-y-4 p-4">
+        <CardContent className="space-y-4 p-6">
           <h3 className="font-medium">Topik yang boleh dikelola Admin Jurusan & Evaluator</h3>
           {managers.length === 0 && (
-            <p className="text-sm text-muted-foreground">Belum ada Admin Jurusan atau Evaluator.</p>
+            <p className="text-sm text-slate-500">Belum ada Admin Jurusan atau Evaluator.</p>
           )}
           {managers.map((u) => (
             <div key={u.id} className="rounded border p-3">
               <div className="mb-2 font-medium">
                 {u.namaLengkap}{" "}
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-slate-500">
                   ({u.role === "admin_prodi" ? "Admin Jurusan" : "Evaluator"})
                 </span>
               </div>
@@ -141,7 +142,7 @@ function RolesPage() {
                   if (ts.length === 0) return null;
                   return (
                     <div key={m.id}>
-                      <div className="text-xs font-medium text-muted-foreground">{m.nama}</div>
+                      <div className="text-xs font-medium text-slate-500">{m.nama}</div>
                       <div className="flex flex-wrap gap-2 pt-1">
                         {ts.map((t) => (
                           <label
@@ -161,7 +162,7 @@ function RolesPage() {
                 })}
               </div>
               {u.allowedTopikIds.length === 0 && (
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2 text-xs text-slate-500">
                   (Kosong = boleh akses semua topik)
                 </p>
               )}
@@ -170,9 +171,9 @@ function RolesPage() {
         </CardContent>
       </Card>
 
-      <Button asChild variant="outline">
+      <Button asChild variant="outline" size="sm" className="h-9">
         <Link to="/admin/users">← Selesai</Link>
       </Button>
-    </div>
+    </AdminPage>
   );
 }

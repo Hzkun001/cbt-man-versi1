@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Building2, GraduationCap, Network, Calendar, Clock, BookOpen, ChevronRight } from "lucide-react";
+import { AdminPageHeader } from "@/components/cbt/AdminPage";
 
 export const Route = createFileRoute("/_authenticated/admin/akademik")({
   component: AkademikLayout,
@@ -32,18 +33,14 @@ function AkademikLayout() {
   const { pathname } = useLocation();
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="w-full space-y-6">
       
       {/* Header */}
       <div className="space-y-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
-            Data Akademik
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Kelola data induk institusi. Konfigurasi di sini akan menjadi fondasi bagi pengelolaan mahasiswa, dosen, dan mata kuliah.
-          </p>
-        </div>
+        <AdminPageHeader 
+          title="Data Akademik" 
+          description="Kelola data induk institusi. Konfigurasi di sini akan menjadi fondasi bagi pengelolaan mahasiswa, dosen, dan mata kuliah."
+        />
 
         {/* Informasi Penekanan (Alert) */}
         <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4 flex gap-3 text-sm">
@@ -101,8 +98,8 @@ function AkademikLayout() {
         </aside>
 
         {/* Content Outlet */}
-        <main className="flex-1 w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[500px] overflow-hidden">
-          <div className="p-6">
+        <main className="flex-1 w-full min-h-[500px]">
+          <div className="py-2">
             <Outlet />
           </div>
         </main>

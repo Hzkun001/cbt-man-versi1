@@ -113,7 +113,7 @@ function UnitAkademikExplorer() {
                   >
                     <Edit2 className="h-3.5 w-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => remove(u.id)}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => remove(u.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                   <Button 
@@ -144,25 +144,21 @@ function UnitAkademikExplorer() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Card className="md:col-span-2">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-4">
           <CardTitle>Struktur Organisasi Akademik</CardTitle>
-          <div className="relative w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari unit..."
-              className="pl-8 h-9"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                if (e.target.value) {
-                  // Expand all when searching
-                  setExpanded(new Set(units.map((u: UnitAkademik) => u.id)));
-                } else {
-                  setExpanded(new Set());
-                }
-              }}
-            />
-          </div>
+          <Input
+            placeholder="Cari unit..."
+            className="max-w-xs"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              if (e.target.value) {
+                setExpanded(new Set(units.map((u: UnitAkademik) => u.id)));
+              } else {
+                setExpanded(new Set());
+              }
+            }}
+          />
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border bg-card p-2 min-h-[400px]">

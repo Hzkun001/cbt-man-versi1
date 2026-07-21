@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { sesiRepo, ujianRepo, usersRepo } from "@/lib/cbt/repos";
 import { Activity, AlertTriangle, Users, Timer, CheckCircle2, Search, MonitorPlay } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { AdminPage, AdminPageHeader, AdminPageContent } from "@/components/cbt/AdminPage";
 
 export const Route = createFileRoute("/_authenticated/admin/peserta/online")({
   component: OnlinePage,
@@ -60,54 +61,44 @@ function OnlinePage() {
   }, [tick, search]);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 pb-20">
+    <AdminPage>
       
-      {/* Sleek Enterprise Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200/80 dark:border-slate-800/80">
-        <div className="space-y-1.5">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-zinc-100">
-            Pantau Ujian Live
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Monitoring aktivitas peserta secara real-time.
-          </p>
-        </div>
-        
-        {/* Minimalist Data Points */}
-        <div className="flex items-center gap-8 text-sm">
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 mb-0.5">Sesi Aktif</span>
-            <span className="text-xl font-medium text-slate-900 dark:text-white tabular-nums leading-none">{sesis.length}</span>
+      {/* Header */}
+      <AdminPageHeader
+        title="Pantau Ujian Live"
+        description="Monitoring aktivitas peserta secara real-time."
+        action={
+          <div className="flex items-center gap-8 text-sm">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 mb-0.5">Sesi Aktif</span>
+              <span className="text-xl font-medium text-slate-900 dark:text-white tabular-nums leading-none">{sesis.length}</span>
+            </div>
+            <div className="w-px h-8 bg-slate-200 dark:bg-slate-800" />
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 mb-0.5">Pelanggaran</span>
+              <span className="text-xl font-medium text-red-600 dark:text-red-400 tabular-nums leading-none">{totalPelanggaran}</span>
+            </div>
+            <div className="w-px h-8 bg-slate-200 dark:bg-slate-800" />
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 mb-0.5">Rata-rata Progress</span>
+              <span className="text-xl font-medium text-slate-900 dark:text-white tabular-nums leading-none">{Math.round(avgProgress)}%</span>
+            </div>
           </div>
-          <div className="w-px h-8 bg-slate-200 dark:bg-slate-800" />
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 mb-0.5">Pelanggaran</span>
-            <span className="text-xl font-medium text-red-600 dark:text-red-400 tabular-nums leading-none">{totalPelanggaran}</span>
-          </div>
-          <div className="w-px h-8 bg-slate-200 dark:bg-slate-800" />
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 mb-0.5">Rata-rata Progress</span>
-            <span className="text-xl font-medium text-slate-900 dark:text-white tabular-nums leading-none">{Math.round(avgProgress)}%</span>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Main Content Area */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Daftar Peserta</h2>
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input 
-              placeholder="Cari nama atau ujian..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 bg-transparent border-slate-200 dark:border-slate-800 text-sm focus-visible:ring-1 focus-visible:ring-slate-300 dark:focus-visible:ring-slate-700 shadow-none transition-all duration-300 ease-spring"
-            />
-          </div>
-        </div>
+      {/* Search */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Input 
+          placeholder="Cari nama atau ujian..." 
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-xs"
+        />
+      </div>
 
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+      <AdminPageContent className="p-0">
           <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
             {sesis.map(({ s, u, ex, dijawab, totalSoal, progress }) => {
               const sisaMs = s.endsAt ? Math.max(0, s.endsAt - Date.now()) : 0;
@@ -176,8 +167,7 @@ function OnlinePage() {
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+      </AdminPageContent>
+    </AdminPage>
   );
 }

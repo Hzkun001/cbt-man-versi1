@@ -156,6 +156,28 @@ export async function createSeedDataset({ uid, now, hashPassword }) {
     createdAt: ts,
   };
 
+  if (process.env.NODE_ENV === "production") {
+    return {
+      groups: [],
+      users: [admin],
+      modul: [],
+      topik: [],
+      soal: [],
+      ujian: [],
+      token: [],
+      sesi: [],
+      config: {
+        appName: "CBT-Kampus",
+        appLogo: "",
+        appDeskripsi: "Sistem CBT Universitas",
+        pesanLogin: "Silakan login menggunakan akun Anda.",
+        mobileLock: false,
+        multiDevice: false,
+        roleAccess: DEFAULT_ROLE_ACCESS,
+      }
+    };
+  }
+
   const operator = {
     id: uid("u_"),
     username: "operator1",

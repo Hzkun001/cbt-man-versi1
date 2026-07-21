@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { sesiRepo, ujianRepo, soalRepo, mataKuliahRepo, semesterRepo } from "@/lib/cbt/repos";
+import { sesiRepo, ujianRepo, soalRepo, mataKuliahRepo, semesterRepo, usersRepo } from "@/lib/cbt/repos";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +34,7 @@ function AnalisisPage() {
     const mk = selectedUjian?.mataKuliahId ? mataKuliahRepo.byId(selectedUjian.mataKuliahId) : null;
     const smt = selectedUjian?.semesterId ? semesterRepo.byId(selectedUjian.semesterId) : null;
 
-    const aoa: (string | number)[][] = [
+    const aoaStatistik: (string | number)[][] = [
       ["Laporan Analisis Butir Soal"],
       ["Ujian", selectedUjian?.nama ?? "-"],
       ["Mata Kuliah", mk?.nama ?? "-"],
@@ -66,7 +66,33 @@ function AnalisisPage() {
         ];
       }),
     ];
-    exportSheet(`analisis-butir-${Date.now()}.xlsx`, [{ name: "Analisis", aoa }]);
+
+    const header1 = ["", "", "", "Nomor Soal"];
+    const header2 = ["No", "Username", "Nama", ...stats.map((_, i) => i + 1)];
+    const dataRows = sesis.map((s, i) => {
+      const u = usersRepo.byId(s.pesertaId);
+      const grid = stats.map(st => {
+         const j = s.jawaban.find(x => x.soalId === st.soalId);
+         if (!j) return 0;
+         return (j.skor && j.skor > 0) ? 1 : 0;
+      });
+      return [i + 1, u?.username ?? "-", u?.namaLengkap ?? "-", ...grid];
+    });
+
+    const aoaGrid: (string | number)[][] = [
+      ["ANALISIS BUTIR SOAL"],
+      ["Grup Peserta", "Semua Grup"],
+      ["Nama Tes", selectedUjian?.nama ?? "-"],
+      [],
+      header1,
+      header2,
+      ...dataRows
+    ];
+
+    exportSheet(`analisis-butir-${Date.now()}.xlsx`, [
+      { name: "Grid Jawaban", aoa: aoaGrid },
+      { name: "Statistik Item", aoa: aoaStatistik }
+    ]);
   }
 
   return (

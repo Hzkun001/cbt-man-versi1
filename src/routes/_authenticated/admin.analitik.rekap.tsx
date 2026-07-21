@@ -49,6 +49,14 @@ function RekapPage() {
     const smt = ex?.semesterId ? semesterRepo.byId(ex.semesterId) : null;
     const g = units.find((x) => x.id === u?.unitId);
     const durasi = s.mulaiAt && s.selesaiAt ? Math.round((s.selesaiAt - s.mulaiAt) / 1000) : 0;
+    
+    function formatDateExcel(ms: number | undefined | null) {
+      if (!ms) return "-";
+      const d = new Date(ms);
+      const pad = (n: number) => n.toString().padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
     return {
       nama: u?.namaLengkap ?? "-",
       username: u?.username ?? "-",
@@ -61,13 +69,14 @@ function RekapPage() {
       persen: s.maxSkor ? Math.round(((s.skorTotal ?? 0) / s.maxSkor) * 1000) / 10 : 0,
       durasi,
       tanggal: s.selesaiAt ? new Date(s.selesaiAt).toLocaleString("id-ID") : "-",
+      mulaiAtStr: formatDateExcel(s.mulaiAt),
     };
   });
 
   function exportExcel() {
     const aoa: (string | number)[][] = [
-      ["Nama", "Username", "Unit Akademik", "Ujian", "Mata Kuliah", "Semester", "Skor", "Maks", "Persentase (%)", "Durasi (detik)", "Tanggal"],
-      ...rows.map((r) => [r.nama, r.username, r.unit, r.ujian, r.mataKuliah, r.semester, r.skor, r.maks, r.persen, r.durasi, r.tanggal]),
+      ["No", "Waktu Mulai", "Nama Tes", "Username", "Nama", "Group", "Poin"],
+      ...rows.map((r, i) => [i + 1, r.mulaiAtStr, r.ujian, r.username, r.nama, r.unit, r.skor]),
     ];
     exportSheet(`rekap-hasil-${Date.now()}.xlsx`, [{ name: "Rekap", aoa }]);
   }

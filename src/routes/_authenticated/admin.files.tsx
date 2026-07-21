@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, Trash2, FolderOpen, FileAudio, File as FileIcon, Search, Link as LinkIcon, Folder, Database } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-
+import { AdminPage, AdminPageHeader } from "@/components/cbt/AdminPage";
 export const Route = createFileRoute("/_authenticated/admin/files")({
   component: FilesPage,
 });
@@ -65,49 +65,45 @@ function FilesPage() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-20">
+    <AdminPage>
       
-      {/* Sleek Enterprise Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200/80 dark:border-slate-800/80">
-        <div className="space-y-1.5">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-zinc-100">
-            Drive Penyimpanan
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Kelola gambar & audio ujian yang terorganisir per Program Studi.
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="relative w-full md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input 
-              placeholder="Cari nama file..." 
-              className="pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-primary/20 shadow-sm"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+      <AdminPageHeader
+        title="Drive Penyimpanan"
+        description="Kelola gambar & audio ujian yang terorganisir per Program Studi."
+        action={
+          <>
+            <input
+              ref={inputRef}
+              type="file"
+              multiple
+              accept="image/*,audio/*"
+              hidden
+              onChange={(e) => {
+                onUpload(e.target.files);
+                e.target.value = "";
+              }}
             />
-          </div>
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            accept="image/*,audio/*"
-            hidden
-            onChange={(e) => {
-              onUpload(e.target.files);
-              e.target.value = "";
-            }}
-          />
-          <Button onClick={() => inputRef.current?.click()} className="shrink-0 shadow-sleek transition-all duration-300 ease-spring hover:scale-[0.98]">
-            <Upload className="mr-2 h-4 w-4 -translate-y-[0.5px]" /> Upload File
-          </Button>
-        </div>
-      </div>
+            <Button size="sm" onClick={() => inputRef.current?.click()} className="h-9">
+              <Upload className="mr-2 h-4 w-4 -translate-y-[0.5px]" /> Upload File
+            </Button>
+          </>
+        }
+      />
 
-      {/* Folder Navigation (Pill Tabs) */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        <button 
+      <div className="flex flex-col sm:flex-row gap-4 sm:items-center pb-2">
+        <div className="relative w-full sm:w-64 shrink-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input 
+            placeholder="Cari nama file..." 
+            className="pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-primary/20 shadow-sm h-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 hidden sm:block mx-1" />
+
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1">
+          <button 
           onClick={() => setSelectedFolder("all")}
           className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ease-spring shrink-0 ${selectedFolder === "all" ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md" : "bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-400"}`}
         >
@@ -131,6 +127,7 @@ function FilesPage() {
             <Folder className="h-4 w-4 -translate-y-[0.5px]" /> {j.nama}
           </button>
         ))}
+      </div>
       </div>
 
       {filteredFiles.length === 0 ? (
@@ -212,7 +209,7 @@ function FilesPage() {
           ))}
         </div>
       )}
-    </div>
+    </AdminPage>
   );
 }
 

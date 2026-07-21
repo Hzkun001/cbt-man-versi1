@@ -13,6 +13,7 @@ import { Plus, Users, BarChart3, KeyRound, PlayCircle, Clock, CheckCircle2, Sett
 import { toast } from "sonner";
 import { visibleUjians } from "@/lib/cbt/access";
 import { Button } from "@/components/ui/button";
+import { AdminPage, AdminPageHeader } from "@/components/cbt/AdminPage";
 
 export const Route = createFileRoute("/_authenticated/admin/ujian")({
   component: UjianRoute,
@@ -150,18 +151,17 @@ function UjianList() {
     activeTab === "selesai" ? selesai : filteredList;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <AdminPage>
       
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Manajemen Paket Ujian</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Kelola pembuatan ujian, soal, dan akses peserta.</p>
-        </div>
-        <Button onClick={add} size="sm" className="shadow-sm">
-          <Plus className="mr-2 h-4 w-4" /> Paket Baru
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Manajemen Paket Ujian"
+        description="Kelola pembuatan ujian, soal, dan akses peserta."
+        action={
+          <Button onClick={add} size="sm" className="shadow-sm h-9">
+            <Plus className="mr-2 h-4 w-4" /> Paket Baru
+          </Button>
+        }
+      />
 
       {/* Toolbar & Filters */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-950 p-1.5 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
@@ -215,6 +215,6 @@ function UjianList() {
         )}
       </div>
 
-    </div>
+    </AdminPage>
   );
 }

@@ -233,3 +233,24 @@ export const mutateGroupServer = createServerFn({ method: "POST" })
 			};
 		}
 	});
+
+export const getUsersList = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const caller = await requireCaller();
+		if (!caller) return [];
+		const rows = await prisma.user.findMany();
+		return rows.map(publicUser);
+	},
+);
+
+export const getGroupsList = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const caller = await requireCaller();
+		if (!caller) return [];
+		const rows = await prisma.group.findMany();
+		return rows.map(r => ({
+			...r,
+			prodiId: r.prodiId ?? undefined,
+		}));
+	},
+);

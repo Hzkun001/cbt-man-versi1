@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { usersRepo, prodiRepo } from "@/lib/cbt/repos";
-import { revokeUserSessionsServer, upsertUserServer } from "@/lib/server/users/functions";
+import { revokeUserSessionsServer, upsertUserServer, mutateUserServer, getUsersList } from "@/lib/server/users/functions";
+import { getProdiList } from "@/lib/server/akademik/functions";
 import { uid } from "@/lib/cbt/storage";
-import type { Role, User } from "@/lib/cbt/types";
+import type { Role, User, ProgramStudi } from "@/lib/cbt/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,19 +27,31 @@ import { toast } from "sonner";
 import { AdminPage, AdminPageHeader, AdminPageContent } from "@/components/cbt/AdminPage";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
+  loader: async () => {
+    const [allUsers, prodiList] = await Promise.all([
+      getUsersList(),
+      getProdiList()
+    ]);
+    return { allUsers, prodiList };
+  },
   component: UsersPage,
 });
 
 function UsersPage() {
-  const [users, setUsers] = useState<User[]>(usersRepo.all().filter((u) => u.role !== "mahasiswa"));
+  const router = useRouter();
+  const { allUsers, prodiList } = Route.useLoaderData();
+  
+  const initialUsers = allUsers.filter((u) => u.role !== "mahasiswa");
+  const [users, setUsers] = useState<User[]>(initialUsers);
+  
+  useEffect(() => {
+    setUsers(initialUsers);
+  }, [initialUsers]);
+
   const [editing, setEditing] = useState<User | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [filterRole, setFilterRole] = useState("all");
-
-  function refresh() {
-    setUsers(usersRepo.all().filter((u) => u.role !== "mahasiswa"));
-  }
 
   const shown = users.filter((u) => 
     (filterRole === "all" || u.role === filterRole) &&
@@ -80,7 +92,7 @@ function UsersPage() {
       </div>
 
       {/* List Section */}
-            <AdminPageContent className="p-0">
+      <AdminPageContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-semibold">
@@ -113,10 +125,17 @@ function UsersPage() {
                     <Button variant="outline" size="sm" onClick={() => { setEditing(u); setOpen(true); }} className="h-8" aria-label="Edit">
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 text-destructive hover:bg-destructive/10" aria-label="Hapus" onClick={() => {
+                    <Button variant="ghost" size="sm" className="h-8 text-destructive hover:bg-destructive/10" aria-label="Hapus" onClick={async () => {
                       if (confirm("Hapus pengguna ini?")) {
-                        usersRepo.remove(u.id);
-                        refresh();
+                        // Optimistic UI
+                        setUsers((prev) => prev.filter(user => user.id !== u.id));
+                        const res = await mutateUserServer({ data: { action: "remove", payload: { id: u.id } } });
+                        if (!res.ok) {
+                          toast.error(res.error || "Gagal menghapus");
+                          await router.invalidate();
+                        } else {
+                          await router.invalidate();
+                        }
                       }
                     }}>
                       <Trash2 className="h-4 w-4" />
@@ -146,7 +165,25 @@ function UsersPage() {
         </div>
       </AdminPageContent>
 
-      <UserDialog open={open} onOpenChange={setOpen} editing={editing} onSaved={refresh} />
+      <UserDialog 
+        open={open} 
+        onOpenChange={setOpen} 
+        editing={editing} 
+        prodiList={prodiList}
+        onSaved={async (user) => {
+          // Optimistic UI update
+          setUsers(prev => {
+            const idx = prev.findIndex(u => u.id === user.id);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = user;
+              return next;
+            }
+            return [...prev, user];
+          });
+          await router.invalidate();
+        }} 
+      />
     </AdminPage>
   );
 }
@@ -155,12 +192,14 @@ function UserDialog({
   open,
   onOpenChange,
   editing,
+  prodiList,
   onSaved,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   editing: User | null;
-  onSaved: () => void;
+  prodiList: ProgramStudi[];
+  onSaved: (user: User) => void;
 }) {
   const [form, setForm] = useState({
     username: "",
@@ -189,30 +228,29 @@ function UserDialog({
       return;
     }
 
-    const res = await upsertUserServer({
-      data: {
-        id: editing?.id ?? uid("u_"),
-        username: form.username.trim(),
-        namaLengkap: form.namaLengkap.trim(),
-        role: form.role,
-        aktif: form.aktif,
-        allowedTopikIds: editing?.allowedTopikIds ?? [],
-        groupId: editing?.groupId,
-        prodiId: form.prodiId || undefined,
-        detail: editing?.detail,
-        createdAt: editing?.createdAt ?? Date.now(),
-        newPassword: form.password.trim() || undefined,
-      },
-    });
+    const payload = {
+      id: editing?.id ?? uid("u_"),
+      username: form.username.trim(),
+      namaLengkap: form.namaLengkap.trim(),
+      role: form.role,
+      aktif: form.aktif,
+      allowedTopikIds: editing?.allowedTopikIds ?? [],
+      groupId: editing?.groupId,
+      prodiId: form.prodiId || undefined,
+      detail: editing?.detail,
+      createdAt: editing?.createdAt ?? Date.now(),
+      newPassword: form.password.trim() || undefined,
+    };
+
+    const res = await upsertUserServer({ data: payload });
 
     if (!res.ok) {
       toast.error(res.error ?? "Gagal menyimpan pengguna");
       return;
     }
 
-    usersRepo.upsert(res.user);
     toast.success(editing ? "Pengguna diperbarui" : "Pengguna ditambahkan");
-    onSaved();
+    onSaved(res.user);
     onOpenChange(false);
   }
 
@@ -256,7 +294,7 @@ function UserDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">-- Tidak ada --</SelectItem>
-                  {prodiRepo.all().map((p) => (
+                  {prodiList.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>
                   ))}
                 </SelectContent>

@@ -1,9 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
-import { usersRepo, groupsRepo } from "@/lib/cbt/repos";
 import { hashPassword } from "@/lib/cbt/hash";
-import { upsertUserServer } from "@/lib/server/users/functions";
+import { upsertUserServer, mutateUserServer, mutateGroupServer, getUsersList, getGroupsList } from "@/lib/server/users/functions";
 import { uid } from "@/lib/cbt/storage";
 import type { Group, User } from "@/lib/cbt/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,26 +16,36 @@ import { Pencil, Trash2, Plus, Printer, Upload, Users as UsersIcon } from "lucid
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/peserta/")({
+  loader: async () => {
+    const [allUsers, groups] = await Promise.all([
+      getUsersList(),
+      getGroupsList()
+    ]);
+    return { allUsers, groups };
+  },
   component: PesertaPage,
 });
 
 type PesertaWithPwd = User & { _initialPassword?: string };
 
 function PesertaPage() {
-  const [peserta, setPeserta] = useState<PesertaWithPwd[]>(
-    usersRepo.all().filter((u) => u.role === "mahasiswa"),
-  );
-  const [groups, setGroups] = useState<Group[]>(groupsRepo.all());
+  const router = useRouter();
+  const { allUsers, groups: initialGroups } = Route.useLoaderData();
+  
+  const initialPeserta = allUsers.filter((u) => u.role === "mahasiswa");
+  const [peserta, setPeserta] = useState<PesertaWithPwd[]>(initialPeserta);
+  const [groups, setGroups] = useState<Group[]>(initialGroups);
+  
+  useEffect(() => {
+    setPeserta(initialPeserta);
+    setGroups(initialGroups);
+  }, [initialPeserta, initialGroups]);
+
   const [editing, setEditing] = useState<PesertaWithPwd | null>(null);
   const [open, setOpen] = useState(false);
   const [filterGroup, setFilterGroup] = useState<string>("all");
   const [query, setQuery] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
-
-  function refresh() {
-    setPeserta(usersRepo.all().filter((u) => u.role === "mahasiswa"));
-    setGroups(groupsRepo.all());
-  }
 
   const shown = peserta.filter((p) =>
     (filterGroup === "all" || p.groupId === filterGroup) &&
@@ -48,30 +57,50 @@ function PesertaPage() {
     const wb = XLSX.read(buf);
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    
+    toast.info("Memproses file Excel, mohon tunggu...");
     let added = 0;
+    
+    // We update local state first for optimistic UI, but wait, it's safer to just refresh at the end.
     for (const r of rows) {
       const username = String(r.username ?? r.Username ?? "").trim();
       const nama = String(r.nama ?? r.Nama ?? r.namaLengkap ?? "").trim();
       const password = String(r.password ?? r.Password ?? username + "123").trim();
       const groupName = String(r.group ?? r.Group ?? r.kelas ?? "").trim();
+      
       if (!username || !nama) continue;
+      
       let groupId: string | undefined;
       if (groupName) {
-        let g = groupsRepo.all().find((x) => x.nama.toLowerCase() === groupName.toLowerCase());
-        if (!g) { g = { id: uid("g_"), nama: groupName, keterangan: "" }; groupsRepo.upsert(g); }
+        let g = groups.find((x) => x.nama.toLowerCase() === groupName.toLowerCase());
+        if (!g) { 
+          g = { id: uid("g_"), nama: groupName, keterangan: "" }; 
+          await mutateGroupServer({ data: { action: "upsert", payload: g } });
+          setGroups(prev => [...prev, g!]);
+        }
         groupId = g.id;
       }
-      const u: PesertaWithPwd = {
-        id: uid("u_"), username, namaLengkap: nama, role: "mahasiswa",
-        allowedTopikIds: [], mataKuliahIds: [], groupId, aktif: true,
-        passwordHash: await hashPassword(password), createdAt: Date.now(),
-        _initialPassword: password,
+      
+      const payload = {
+        id: uid("u_"), 
+        username, 
+        namaLengkap: nama, 
+        role: "mahasiswa" as const,
+        allowedTopikIds: [], 
+        groupId, 
+        aktif: true,
+        createdAt: Date.now(),
+        newPassword: password,
       };
-      usersRepo.upsert(u);
-      added++;
+      
+      const res = await upsertUserServer({ data: payload });
+      if (res.ok) {
+        added++;
+      }
     }
+    
     toast.success(`${added} peserta diimport`);
-    refresh();
+    await router.invalidate();
   }
 
   function downloadTemplate() {
@@ -84,7 +113,7 @@ function PesertaPage() {
   }
 
   return (
-        <AdminPage>
+    <AdminPage>
       <AdminPageHeader
         title="Akun Peserta"
         description="Kelola data mahasiswa, grup kelas, dan import akun dari Excel."
@@ -167,10 +196,17 @@ function PesertaPage() {
                     <Button variant="outline" size="sm" onClick={() => { setEditing(p); setOpen(true); }} className="h-8" aria-label="Edit">
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 text-destructive hover:bg-destructive/10" aria-label="Hapus" onClick={() => {
+                    <Button variant="ghost" size="sm" className="h-8 text-destructive hover:bg-destructive/10" aria-label="Hapus" onClick={async () => {
                       if (confirm("Hapus peserta ini?")) {
-                        usersRepo.remove(p.id);
-                        refresh();
+                        // Optimistic UI
+                        setPeserta((prev) => prev.filter(user => user.id !== p.id));
+                        const res = await mutateUserServer({ data: { action: "remove", payload: { id: p.id } } });
+                        if (!res.ok) {
+                          toast.error(res.error || "Gagal menghapus");
+                          await router.invalidate();
+                        } else {
+                          await router.invalidate();
+                        }
                       }
                     }}>
                       <Trash2 className="h-4 w-4" />
@@ -187,7 +223,24 @@ function PesertaPage() {
           </table>
         </div>
       </AdminPageContent>
-<PesertaDialog open={open} onOpenChange={setOpen} editing={editing} groups={groups} onSaved={refresh} />
+      <PesertaDialog 
+        open={open} 
+        onOpenChange={setOpen} 
+        editing={editing} 
+        groups={groups} 
+        onSaved={async (user) => {
+          setPeserta(prev => {
+            const idx = prev.findIndex(u => u.id === user.id);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = user;
+              return next;
+            }
+            return [...prev, user];
+          });
+          await router.invalidate();
+        }} 
+      />
     </AdminPage>
   );
 }
@@ -203,7 +256,7 @@ function PesertaDialog({
   onOpenChange: (v: boolean) => void;
   editing: User | null;
   groups: Group[];
-  onSaved: () => void;
+  onSaved: (user: User) => void;
 }) {
   const [form, setForm] = useState({
     username: "",
@@ -230,29 +283,28 @@ function PesertaDialog({
       return;
     }
 
-    const res = await upsertUserServer({
-      data: {
-        id: editing?.id ?? uid("u_"),
-        username: form.username.trim(),
-        namaLengkap: form.namaLengkap.trim(),
-        role: "mahasiswa",
-        allowedTopikIds: editing?.allowedTopikIds ?? [],
-        groupId: form.groupId || undefined,
-        detail: editing?.detail,
-        aktif: form.aktif,
-        createdAt: editing?.createdAt ?? Date.now(),
-        newPassword: form.password.trim() || undefined,
-      },
-    });
+    const payload = {
+      id: editing?.id ?? uid("u_"),
+      username: form.username.trim(),
+      namaLengkap: form.namaLengkap.trim(),
+      role: "mahasiswa" as const,
+      allowedTopikIds: editing?.allowedTopikIds ?? [],
+      groupId: form.groupId || undefined,
+      detail: editing?.detail,
+      aktif: form.aktif,
+      createdAt: editing?.createdAt ?? Date.now(),
+      newPassword: form.password.trim() || undefined,
+    };
+
+    const res = await upsertUserServer({ data: payload });
 
     if (!res.ok) {
       toast.error(res.error ?? "Gagal menyimpan peserta");
       return;
     }
 
-    usersRepo.upsert(res.user);
     toast.success("Disimpan");
-    onSaved();
+    onSaved(res.user);
     onOpenChange(false);
   }
 
